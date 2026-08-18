@@ -1,0 +1,46 @@
+:root {
+  --rosa-principal: #ffb6c1;
+  --rosa-fundo: #fff0f5;
+  --branco: #ffffff;
+  --texto: #4a3e3d;
+
+  --sombra: 0 4px 15px rgba(74, 62, 61, 0.1);
+  --borda: #f2d6dc;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--rosa-fundo);
+  color: var(--texto);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}

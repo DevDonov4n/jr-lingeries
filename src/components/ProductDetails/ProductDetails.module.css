@@ -1,0 +1,72 @@
+.option {
+  margin-bottom: 25px;
+}
+
+.option h2 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.sizes {
+  display: flex;
+  gap: 10px;
+}
+
+.sizes button {
+  width: 45px;
+  height: 45px;
+
+  border: 1px solid var(--borda);
+  border-radius: 50%;
+
+  background-color: var(--branco);
+  color: var(--texto);
+
+  transition: 0.2s;
+}
+
+.sizes button:hover {
+  background-color: var(--rosa-principal);
+}
+
+.sizes .selected {
+  background-color: var(--rosa-principal);
+  border-color: var(--rosa-principal);
+}
+
+.quantity {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.quantity button {
+  width: 35px;
+  height: 35px;
+
+  border: 1px solid var(--borda);
+  border-radius: 50%;
+
+  background-color: var(--branco);
+}
+
+.addButton {
+  width: 100%;
+  padding: 16px;
+
+  border: none;
+  border-radius: 30px;
+
+  background-color: var(--rosa-principal);
+  color: var(--texto);
+
+  font-weight: bold;
+  font-size: 1rem;
+
+  transition: 0.3s;
+}
+
+.addButton:hover {
+  background-color: #ff9faf;
+  transform: translateY(-2px);
+}
