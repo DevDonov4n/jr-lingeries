@@ -62,7 +62,7 @@ export function CartProvider({
         const parsedCart: CartItem[] =
           JSON.parse(savedCart);
 
-        setCart(parsedCart);
+        setCart(parsedCart); // <======== bem aqui chat
       } catch {
         console.error(
           "Não foi possível carregar o carrinho."
