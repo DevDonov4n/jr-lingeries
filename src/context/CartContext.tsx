@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   ReactNode,
 } from "react";
@@ -16,18 +17,31 @@ interface CartItem extends Product {
 
 interface CartContextType {
   cart: CartItem[];
+  isHydrated: boolean;
+
   addToCart: (
     product: Product,
     selectedSize: string,
     quantity: number
   ) => void;
-  removeFromCart: (productId: number, selectedSize: string) => void;
+
+  removeFromCart: (
+    productId: number,
+    selectedSize: string
+  ) => void;
+
+  updateQuantity: (
+    productId: number,
+    selectedSize: string,
+    quantity: number
+  ) => void;
+
   clearCart: () => void;
 }
 
-const CartContext = createContext<CartContextType | undefined>(
-  undefined
-);
+const CartContext = createContext<
+  CartContextType | undefined
+>(undefined);
 
 export function CartProvider({
   children,
@@ -35,7 +49,41 @@ export function CartProvider({
   children: ReactNode;
 }) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
 
+  // Recuperar carrinho do navegador
+  useEffect(() => {
+    const savedCart = localStorage.getItem(
+      "jr-lingeries-cart"
+    );
+
+    if (savedCart) {
+      try {
+        const parsedCart: CartItem[] =
+          JSON.parse(savedCart);
+
+        setCart(parsedCart);
+      } catch {
+        console.error(
+          "Não foi possível carregar o carrinho."
+        );
+      }
+    }
+
+    setIsHydrated(true);
+  }, []);
+
+  // Salvar carrinho no navegador
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    localStorage.setItem(
+      "jr-lingeries-cart",
+      JSON.stringify(cart)
+    );
+  }, [cart, isHydrated]);
+
+  // Adicionar produto
   function addToCart(
     product: Product,
     selectedSize: string,
@@ -48,29 +96,38 @@ export function CartProvider({
           item.selectedSize === selectedSize
       );
 
+      // Produto já existe no carrinho
       if (existingItem) {
         return currentCart.map((item) =>
           item.id === product.id &&
           item.selectedSize === selectedSize
             ? {
                 ...item,
-                quantity: item.quantity + quantity,
+                quantity: Math.min(
+                  item.quantity + quantity,
+                  item.stock
+                ),
               }
             : item
         );
       }
 
+      // Novo produto
       return [
         ...currentCart,
         {
           ...product,
-          quantity,
+          quantity: Math.min(
+            quantity,
+            product.stock
+          ),
           selectedSize,
         },
       ];
     });
   }
 
+  // Remover produto
   function removeFromCart(
     productId: number,
     selectedSize: string
@@ -86,6 +143,35 @@ export function CartProvider({
     );
   }
 
+  // Alterar quantidade
+  function updateQuantity(
+    productId: number,
+    selectedSize: string,
+    quantity: number
+  ) {
+    // Se chegar a zero, remove o produto
+    if (quantity <= 0) {
+      removeFromCart(productId, selectedSize);
+      return;
+    }
+
+    setCart((currentCart) =>
+      currentCart.map((item) =>
+        item.id === productId &&
+        item.selectedSize === selectedSize
+          ? {
+              ...item,
+              quantity: Math.min(
+                quantity,
+                item.stock
+              ),
+            }
+          : item
+      )
+    );
+  }
+
+  // Limpar carrinho
   function clearCart() {
     setCart([]);
   }
@@ -94,8 +180,10 @@ export function CartProvider({
     <CartContext.Provider
       value={{
         cart,
+        isHydrated,
         addToCart,
         removeFromCart,
+        updateQuantity,
         clearCart,
       }}
     >
@@ -104,6 +192,7 @@ export function CartProvider({
   );
 }
 
+// Hook para utilizar o carrinho
 export function useCart() {
   const context = useContext(CartContext);
 

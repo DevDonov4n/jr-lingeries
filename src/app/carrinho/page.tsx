@@ -10,7 +10,18 @@ export default function Carrinho() {
         removeFromCart,
         updateQuantity,
         clearCart,
+        isHydrated,
     } = useCart();
+
+    if(!isHydrated){
+      return (
+        <main className={styles.main}>
+          <section className={styles.empty}>
+            <h1>Carregando seu carrinho...</h1>
+          </section>
+        </main>
+      )
+    }
 
   const total = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
