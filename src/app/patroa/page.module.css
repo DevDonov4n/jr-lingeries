@@ -5,100 +5,31 @@
   color: #4a3e3d;
 }
 
-.header {
-  max-width: 1200px;
-  margin: 0 auto 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.logo {
-  color: #d98291;
-  font-weight: 800;
-  font-size: 18px;
-}
-
-.header h1 {
-  margin: 8px 0;
-  font-size: 32px;
-}
-
+.header { max-width: 1200px; margin: 0 auto 30px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.logo { color: #d98291; font-weight: 800; font-size: 18px; }
+.header h1 { margin: 8px 0; font-size: 32px; }
 .header p { margin: 0; color: #6b5d5b; }
-
-.logout {
-  border: 0;
-  border-radius: 10px;
-  padding: 12px 22px;
-  background: #fff;
-  color: #9b5c68;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.cards {
-  max-width: 1200px;
-  margin: 0 auto 24px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
-}
-
-.card, .panel {
-  background: #fff;
-  border-radius: 18px;
-  padding: 24px;
-  box-shadow: 0 8px 25px rgba(74, 62, 61, .08);
-}
-
+.logout { border: 0; border-radius: 10px; padding: 12px 22px; background: #fff; color: #9b5c68; font-weight: 700; cursor: pointer; }
+.cards { max-width: 1200px; margin: 0 auto 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.card, .panel { background: #fff; border-radius: 18px; padding: 24px; box-shadow: 0 8px 25px rgba(74, 62, 61, .08); }
 .card span { display: block; color: #766967; font-size: 14px; margin-bottom: 10px; }
 .card strong { font-size: 25px; }
-
-.content {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 24px;
-}
-
+.content { max-width: 1200px; margin: 0 auto 24px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; }
 .panel h2 { margin: 0 0 6px; }
 .panelTitle p { margin: 0 0 24px; color: #766967; }
+.productList { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+.productItem { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 15px; border: 1px solid #f1e5e7; border-radius: 12px; }
+.productItem > div:first-child { display: flex; flex-direction: column; gap: 5px; }
+.productItem span { color: #766967; font-size: 14px; }
+.actions, .formActions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions button, .form button { border: 0; border-radius: 9px; padding: 9px 13px; background: #ffb6c1; color: #4a3e3d; font-weight: 700; cursor: pointer; }
+.deleteButton { background: #f8e1e5 !important; color: #a34f5e !important; }
+.form { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.form input, .form select { width: 100%; box-sizing: border-box; border: 1px solid #ead9dc; border-radius: 10px; padding: 12px 13px; color: #4a3e3d; background: #fff; outline: none; }
+.form input:focus, .form select:focus { border-color: #d98291; }
+.form button { padding: 12px 16px; }
+.cancelButton { background: #f1e5e7 !important; }
+.empty { margin-top: 20px; color: #766967; }
 
-.stockList { display: flex; flex-direction: column; gap: 22px; }
-.stockItem { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
-.stockItem span { font-weight: 700; }
-.stockItem strong { white-space: nowrap; }
-
-.bar {
-  height: 9px;
-  margin-top: 9px;
-  border-radius: 99px;
-  background: #f4dce1;
-  overflow: hidden;
-}
-
-.barFill { height: 100%; border-radius: inherit; background: #ffb6c1; }
-
-.summary { display: flex; flex-direction: column; margin-top: 20px; }
-.summary div {
-  display: flex;
-  justify-content: space-between;
-  padding: 17px 0;
-  border-bottom: 1px solid #f1e5e7;
-}
-.summary div:last-child { border-bottom: 0; }
-.summary span { color: #766967; }
-
-@media (max-width: 900px) {
-  .cards { grid-template-columns: repeat(2, 1fr); }
-  .content { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 600px) {
-  .page { padding: 24px 16px; }
-  .header { flex-direction: column; }
-  .cards { grid-template-columns: 1fr; }
-  .header h1 { font-size: 26px; }
-}
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } .content { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .page { padding: 24px 16px; } .header { flex-direction: column; } .cards { grid-template-columns: 1fr; } .header h1 { font-size: 26px; } .productItem { flex-direction: column; align-items: stretch; } .actions button { flex: 1; } }
