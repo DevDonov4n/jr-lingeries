@@ -1,9 +1,15 @@
+import type { StaticImageData } from "next/image";
+import bodyDelicate from "@/assets/BodyDelicate.jpg";
+import conjuntoElegance from "@/assets/ConjuntoElegance.jpg";
+import conjuntoRomance from "@/assets/ConjuntoRomance.jpg";
+import sutiaComfort from "@/assets/SutiaComfort.jpg";
+
 export interface Product {
   id: number;
   name: string;
   category: string;
   price: number;
-  image: string;
+  image: StaticImageData;
   sizes: string[];
   stock: number;
 }
@@ -14,7 +20,7 @@ export const products: Product[] = [
     name: "Conjunto Elegance",
     category: "Conjuntos",
     price: 89.90,
-    image: "/products/conjunto-elegance.jpg",
+    image: conjuntoElegance,
     sizes: ["P", "M", "G"],
     stock: 10,
   },
@@ -23,7 +29,7 @@ export const products: Product[] = [
     name: "Conjunto Romance",
     category: "Conjuntos",
     price: 99.90,
-    image: "/products/conjunto-romance.jpg",
+    image: conjuntoRomance,
     sizes: ["P", "M", "G", "GG"],
     stock: 8,
   },
@@ -32,7 +38,7 @@ export const products: Product[] = [
     name: "Body Delicate",
     category: "Bodies",
     price: 79.90,
-    image: "/products/body-delicate.jpg",
+    image: bodyDelicate,
     sizes: ["P", "M", "G"],
     stock: 5,
   },
@@ -41,7 +47,7 @@ export const products: Product[] = [
     name: "Sutiã Comfort",
     category: "Sutiãs",
     price: 59.90,
-    image: "/products/sutia-comfort.jpg",
+    image: sutiaComfort,
     sizes: ["M", "G", "GG"],
     stock: 12,
   },
