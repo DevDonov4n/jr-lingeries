@@ -173,7 +173,7 @@ export default function Patroa() {
           aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={menuOpen}
         >
-          <span>{menuOpen ? "×" : "☰"}</span>
+          <span className={styles.menuIcon}>{menuOpen ? "−" : "+"}</span>
         </button>
 
         <nav className={`${styles.mobileNav} ${menuOpen ? styles.mobileNavOpen : ""}`} aria-label="Menu mobile">
