@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
@@ -31,9 +31,11 @@ const initialPromotions: Promotion[] = [];
 const financeiro = {
   recebido: 4850,
   receber: 2150,
-  devedor: 2150,
+  devedor: 100,
   clientesAtivos: 10,
 };
+
+const categorias = ["Calcinhas", "Sutiãs", "Cuecas", "Conjuntos", "Bodies"];
 
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -68,6 +70,17 @@ export default function Patroa() {
   }, [promotions]);
 
   const totalPecas = products.reduce((total, product) => total + product.stock, 0);
+
+  const estoquePorCategoria = useMemo(() => categorias.map((categoria) => ({
+    categoria,
+    quantidade: products
+      .filter((product) => product.category === categoria)
+      .reduce((total, product) => total + product.stock, 0),
+  })), [products]);
+
+  const maiorEstoque = Math.max(...estoquePorCategoria.map((item) => item.quantidade), 1);
+  const totalFinanceiro = financeiro.recebido + financeiro.receber;
+  const percentualRecebido = totalFinanceiro > 0 ? Math.round((financeiro.recebido / totalFinanceiro) * 100) : 0;
 
   function handleProductSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,16 +148,86 @@ export default function Patroa() {
         <div>
           <span className={styles.logo}>JR Lingeries</span>
           <h1>Dashboard da Patroa</h1>
-          <p>Controle financeiro, estoque, produtos e promoções.</p>
+          <p>Uma visão completa das vendas, estoque, produtos e promoções.</p>
         </div>
         <button className={styles.logout} onClick={sair}>Sair</button>
       </header>
 
       <section className={styles.cards}>
-        <article className={styles.card}><span>Total recebido</span><strong>{formatCurrency(financeiro.recebido)}</strong></article>
-        <article className={styles.card}><span>Total a receber</span><strong>{formatCurrency(financeiro.receber)}</strong></article>
-        <article className={styles.card}><span>Saldo devedor</span><strong>{formatCurrency(financeiro.devedor)}</strong></article>
-        <article className={styles.card}><span>Clientes ativos</span><strong>{financeiro.clientesAtivos}</strong></article>
+        <article className={styles.card}>
+          <span>Total recebido</span>
+          <strong>{formatCurrency(financeiro.recebido)}</strong>
+          <small className={styles.positive}>Recebimentos confirmados</small>
+        </article>
+        <article className={styles.card}>
+          <span>Total a receber</span>
+          <strong>{formatCurrency(financeiro.receber)}</strong>
+          <small>Valores em aberto</small>
+        </article>
+        <article className={`${styles.card} ${styles.debtCard}`}>
+          <span>Saldo devedor</span>
+          <strong>{formatCurrency(financeiro.devedor)}</strong>
+          <small>Referente ao mês anterior</small>
+        </article>
+        <article className={styles.card}>
+          <span>Clientes ativos</span>
+          <strong>{financeiro.clientesAtivos}</strong>
+          <small>Clientes cadastrados</small>
+        </article>
+      </section>
+
+      <section className={styles.analytics}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeading}>
+            <div>
+              <span className={styles.eyebrow}>Financeiro</span>
+              <h2>Resumo financeiro</h2>
+            </div>
+            <span className={styles.chartBadge}>Visão geral</span>
+          </div>
+          <div className={styles.financeChart}>
+            <div
+              className={styles.donut}
+              style={{ "--progress": `${percentualRecebido}%` } as React.CSSProperties}
+            >
+              <div className={styles.donutCenter}>
+                <strong>{percentualRecebido}%</strong>
+                <span>recebido</span>
+              </div>
+            </div>
+            <div className={styles.chartLegend}>
+              <div className={styles.legendItem}>
+                <span className={`${styles.legendDot} ${styles.receivedDot}`} />
+                <div><strong>{formatCurrency(financeiro.recebido)}</strong><span>Recebido</span></div>
+              </div>
+              <div className={styles.legendItem}>
+                <span className={`${styles.legendDot} ${styles.toReceiveDot}`} />
+                <div><strong>{formatCurrency(financeiro.receber)}</strong><span>A receber</span></div>
+              </div>
+              <div className={styles.totalLine}><span>Movimentação prevista</span><strong>{formatCurrency(totalFinanceiro)}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeading}>
+            <div>
+              <span className={styles.eyebrow}>Estoque</span>
+              <h2>Peças por categoria</h2>
+            </div>
+            <span className={styles.chartBadge}>{totalPecas} peças</span>
+          </div>
+          <div className={styles.barChart}>
+            {estoquePorCategoria.map((item) => (
+              <div className={styles.barRow} key={item.categoria}>
+                <div className={styles.barLabel}><span>{item.categoria}</span><strong>{item.quantidade}</strong></div>
+                <div className={styles.barTrack}>
+                  <div className={styles.barFill} style={{ width: `${(item.quantidade / maiorEstoque) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className={styles.content}>
