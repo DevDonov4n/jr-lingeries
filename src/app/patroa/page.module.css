@@ -1,7 +1,7 @@
 .page {
   min-height: 100vh;
   box-sizing: border-box;
-  padding: 48px 32px 64px;
+  padding: 36px 32px 64px;
   background: #fff0f5;
   color: #4a3e3d;
 }
@@ -17,48 +17,74 @@
 
 .header {
   margin-bottom: 28px;
+  padding: 22px 26px;
+  box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(234, 217, 220, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(74, 62, 61, 0.07);
+}
+
+.header > div {
+  min-width: 0;
 }
 
 .logo {
-  display: inline-block;
-  color: #d98291;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 7px 11px;
+  border-radius: 10px;
+  background: #fff0f5;
+  color: #c86f80;
+  font-size: 15px;
   font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 .header h1 {
-  margin: 7px 0 8px;
-  font-size: 34px;
+  margin: 10px 0 5px;
+  color: #4a3e3d;
+  font-size: 30px;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 .header p {
   margin: 0;
+  max-width: 680px;
   color: #766967;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .logout {
-  flex-shrink: 0;
-  border: 0;
-  border-radius: 12px;
-  padding: 12px 22px;
+  flex: 0 0 auto;
+  min-width: 92px;
+  border: 1px solid #efdce0;
+  border-radius: 11px;
+  padding: 11px 20px;
   background: #fff;
   color: #9b5c68;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 22px rgba(74, 62, 61, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 5px 14px rgba(74, 62, 61, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .logout:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 26px rgba(74, 62, 61, 0.1);
+  background: #fff5f7;
+  box-shadow: 0 8px 18px rgba(74, 62, 61, 0.09);
+}
+
+.logout:active {
+  transform: translateY(0);
 }
 
 .cards {
@@ -466,6 +492,14 @@
 }
 
 @media (max-width: 1000px) {
+  .page {
+    padding: 28px 24px 56px;
+  }
+
+  .header {
+    align-items: flex-start;
+  }
+
   .cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -478,28 +512,55 @@
 
 @media (max-width: 620px) {
   .page {
-    padding: 28px 16px 48px;
+    padding: 18px 14px 42px;
   }
 
   .header {
+    margin-bottom: 20px;
+    padding: 18px;
     flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    border-radius: 16px;
   }
 
   .header h1 {
-    font-size: 28px;
+    margin-top: 9px;
+    font-size: 25px;
+  }
+
+  .header p {
+    font-size: 13px;
   }
 
   .logout {
     width: 100%;
+    min-height: 44px;
   }
 
   .cards {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    min-height: auto;
+    padding: 19px;
   }
 
   .analytics .panel,
   .content .panel {
     padding: 20px;
+    border-radius: 16px;
+  }
+
+  .panelHeading {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .chartBadge {
+    align-self: flex-start;
   }
 
   .financeChart {
