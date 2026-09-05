@@ -10,10 +10,49 @@
 .header h1 { margin: 8px 0; font-size: 32px; }
 .header p { margin: 0; color: #6b5d5b; }
 .logout { border: 0; border-radius: 10px; padding: 12px 22px; background: #fff; color: #9b5c68; font-weight: 700; cursor: pointer; }
+
 .cards { max-width: 1200px; margin: 0 auto 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
 .card, .panel { background: #fff; border-radius: 18px; padding: 24px; box-shadow: 0 8px 25px rgba(74, 62, 61, .08); }
+.card { position: relative; overflow: hidden; }
 .card span { display: block; color: #766967; font-size: 14px; margin-bottom: 10px; }
-.card strong { font-size: 25px; }
+.card strong { display: block; font-size: 25px; }
+.card small { display: block; margin-top: 8px; color: #988b89; font-size: 12px; }
+.positive { color: #5b9b77 !important; }
+.debtCard { border: 1px solid #f2b7bd; background: linear-gradient(135deg, #fff, #fff5f5); }
+.debtCard span, .debtCard strong { color: #c43f4d; }
+.debtCard::after { content: ""; position: absolute; width: 70px; height: 70px; border-radius: 50%; background: rgba(196, 63, 77, .08); right: -22px; top: -22px; }
+
+.analytics { max-width: 1200px; margin: 0 auto 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.panelHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.eyebrow { color: #d98291; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.panelHeading h2 { margin: 5px 0 0; }
+.chartBadge { padding: 7px 10px; border-radius: 999px; background: #fff0f5; color: #9b5c68; font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+.financeChart { display: flex; align-items: center; justify-content: center; gap: 42px; min-height: 230px; }
+.donut { --progress: 0%; width: 160px; height: 160px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#d98291 var(--progress), #f3e4e7 var(--progress)); position: relative; flex: 0 0 auto; }
+.donut::before { content: ""; width: 112px; height: 112px; border-radius: 50%; background: #fff; position: absolute; }
+.donutCenter { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.donutCenter strong { font-size: 28px; color: #4a3e3d; }
+.donutCenter span { color: #766967; font-size: 12px; }
+.chartLegend { display: flex; flex-direction: column; gap: 18px; min-width: 170px; }
+.legendItem { display: flex; align-items: center; gap: 10px; }
+.legendDot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.receivedDot { background: #d98291; }
+.toReceiveDot { background: #ead6da; }
+.legendItem div { display: flex; flex-direction: column; gap: 3px; }
+.legendItem strong { font-size: 15px; }
+.legendItem span { color: #766967; font-size: 12px; }
+.totalLine { border-top: 1px solid #f1e5e7; padding-top: 14px; display: flex; flex-direction: column; gap: 3px; }
+.totalLine span { color: #766967; font-size: 12px; }
+
+.barChart { margin-top: 24px; display: flex; flex-direction: column; gap: 18px; }
+.barRow { display: flex; flex-direction: column; gap: 7px; }
+.barLabel { display: flex; justify-content: space-between; font-size: 13px; }
+.barLabel span { color: #766967; }
+.barLabel strong { color: #4a3e3d; }
+.barTrack { height: 9px; background: #f6e9eb; border-radius: 999px; overflow: hidden; }
+.barFill { height: 100%; min-width: 3px; border-radius: inherit; background: linear-gradient(90deg, #ffb6c1, #d98291); transition: width .3s ease; }
+
 .content { max-width: 1200px; margin: 0 auto 24px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; }
 .panel h2 { margin: 0 0 6px; }
 .panelTitle p { margin: 0 0 24px; color: #766967; }
@@ -31,5 +70,5 @@
 .cancelButton { background: #f1e5e7 !important; }
 .empty { margin-top: 20px; color: #766967; }
 
-@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } .content { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .page { padding: 24px 16px; } .header { flex-direction: column; } .cards { grid-template-columns: 1fr; } .header h1 { font-size: 26px; } .productItem { flex-direction: column; align-items: stretch; } .actions button { flex: 1; } }
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } .analytics, .content { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .page { padding: 24px 16px; } .header { flex-direction: column; } .cards { grid-template-columns: 1fr; } .header h1 { font-size: 26px; } .financeChart { flex-direction: column; gap: 24px; padding-top: 20px; } .productItem { flex-direction: column; align-items: stretch; } .actions button { flex: 1; } }
