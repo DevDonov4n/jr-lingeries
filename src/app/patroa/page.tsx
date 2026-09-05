@@ -43,6 +43,7 @@ function formatCurrency(value: number) {
 
 export default function Patroa() {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [promotions, setPromotions] = useState<Promotion[]>(initialPromotions);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -82,6 +83,10 @@ export default function Patroa() {
   const totalFinanceiro = financeiro.recebido + financeiro.receber;
   const percentualRecebido = totalFinanceiro > 0 ? Math.round((financeiro.recebido / totalFinanceiro) * 100) : 0;
 
+  function fecharMenu() {
+    setMenuOpen(false);
+  }
+
   function handleProductSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const product: Product = {
@@ -110,7 +115,7 @@ export default function Patroa() {
       price: String(product.price),
       stock: String(product.stock),
     });
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    document.getElementById("estoque")?.scrollIntoView({ behavior: "smooth" });
   }
 
   function excluirProduto(id: number) {
@@ -145,13 +150,42 @@ export default function Patroa() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.headerBrand}>
           <span className={styles.logo}>JR Lingeries</span>
-          <h1>Dashboard da Patroa</h1>
-          <p>Uma visão completa das vendas, estoque, produtos e promoções.</p>
+          <div>
+            <h1>Dashboard da Patroa</h1>
+            <p>Uma visão completa das vendas, estoque, produtos e promoções.</p>
+          </div>
         </div>
-        <button className={styles.logout} onClick={sair}>Sair</button>
+
+        <nav className={styles.desktopNav} aria-label="Navegação do dashboard">
+          <a href="#dashboard">Início</a>
+          <a href="#financeiro">Financeiro</a>
+          <a href="#estoque">Estoque</a>
+          <a href="#promocoes">Promoções</a>
+        </nav>
+
+        <button className={styles.logoutDesktop} onClick={sair}>Sair</button>
+
+        <button
+          className={styles.menuButton}
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={menuOpen}
+        >
+          <span>{menuOpen ? "×" : "☰"}</span>
+        </button>
+
+        <nav className={`${styles.mobileNav} ${menuOpen ? styles.mobileNavOpen : ""}`} aria-label="Menu mobile">
+          <a href="#dashboard" onClick={fecharMenu}>Início</a>
+          <a href="#financeiro" onClick={fecharMenu}>Financeiro</a>
+          <a href="#estoque" onClick={fecharMenu}>Estoque</a>
+          <a href="#promocoes" onClick={fecharMenu}>Promoções</a>
+          <button onClick={() => { fecharMenu(); sair(); }}>Sair</button>
+        </nav>
       </header>
+
+      <div id="dashboard" className={styles.dashboardAnchor} />
 
       <section className={styles.cards}>
         <article className={styles.card}>
@@ -176,7 +210,7 @@ export default function Patroa() {
         </article>
       </section>
 
-      <section className={styles.analytics}>
+      <section id="financeiro" className={styles.analytics}>
         <div className={styles.panel}>
           <div className={styles.panelHeading}>
             <div>
@@ -230,7 +264,7 @@ export default function Patroa() {
         </div>
       </section>
 
-      <section className={styles.content}>
+      <section id="estoque" className={styles.content}>
         <div className={styles.panel}>
           <div className={styles.panelTitle}>
             <div><h2>Estoque</h2><p>{totalPecas} peças cadastradas</p></div>
@@ -265,7 +299,7 @@ export default function Patroa() {
         </div>
       </section>
 
-      <section className={styles.content}>
+      <section id="promocoes" className={styles.content}>
         <div className={styles.panel}>
           <h2>Criar promoção</h2>
           <form className={styles.form} onSubmit={criarPromocao}>
