@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model categories {
+  id          BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String     @unique(map: "name") @db.VarChar(100)
+  description String?    @db.VarChar(255)
+  active      Boolean    @default(true)
+  created_at  DateTime?  @default(now()) @db.Timestamp(0)
+  products    products[]
+}
+
+model clients {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id      BigInt?   @db.UnsignedBigInt
+  name         String    @db.VarChar(150)
+  phone        String?   @db.VarChar(30)
+  email        String?   @db.VarChar(150)
+  cpf          String?   @db.VarChar(14)
+  address      String?   @db.VarChar(255)
+  number       String?   @db.VarChar(20)
+  neighborhood String?   @db.VarChar(100)
+  city         String?   @db.VarChar(100)
+  state        String?   @db.VarChar(2)
+  zip_code     String?   @db.VarChar(10)
+  notes        String?   @db.Text
+  active       Boolean   @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamp(0)
+  updated_at   DateTime? @default(now()) @db.Timestamp(0)
+  users        users?    @relation(fields: [user_id], references: [id], map: "fk_clients_user")
+  sales        sales[]
+
+  @@index([user_id], map: "fk_clients_user")
+  @@index([name], map: "idx_clients_name")
+}
+
+model financial_transactions {
+  id               BigInt                                 @id @default(autoincrement()) @db.UnsignedBigInt
+  type             financial_transactions_type
+  category         String                                 @db.VarChar(100)
+  description      String                                 @db.VarChar(255)
+  amount           Decimal                                @db.Decimal(10, 2)
+  transaction_date DateTime                               @default(now()) @db.DateTime(0)
+  payment_method   financial_transactions_payment_method?
+  sale_id          BigInt?                                @db.UnsignedBigInt
+  notes            String?                                @db.Text
+  created_at       DateTime?                              @default(now()) @db.Timestamp(0)
+  sales            sales?                                 @relation(fields: [sale_id], references: [id], map: "fk_financial_sale")
+
+  @@index([sale_id], map: "fk_financial_sale")
+  @@index([transaction_date], map: "idx_financial_date")
+}
+
+model inventory_movements {
+  id             BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id     BigInt                   @db.UnsignedBigInt
+  type           inventory_movements_type
+  quantity       Int
+  previous_stock Int
+  current_stock  Int
+  reason         String?                  @db.VarChar(255)
+  sale_id        BigInt?                  @db.UnsignedBigInt
+  created_at     DateTime?                @default(now()) @db.Timestamp(0)
+  products       products                 @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "fk_inventory_product")
+  sales          sales?                   @relation(fields: [sale_id], references: [id], map: "fk_inventory_sale")
+
+  @@index([sale_id], map: "fk_inventory_sale")
+  @@index([product_id], map: "idx_inventory_product")
+}
+
+model offer_items {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  offer_id   BigInt    @db.UnsignedBigInt
+  product_id BigInt    @db.UnsignedBigInt
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  offers     offers    @relation(fields: [offer_id], references: [id], onDelete: Cascade, map: "fk_offer_items_offer")
+  products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "fk_offer_items_product")
+
+  @@unique([offer_id, product_id], map: "unique_offer_product")
+  @@index([product_id], map: "fk_offer_items_product")
+}
+
+model offers {
+  id             BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  name           String               @db.VarChar(150)
+  description    String?              @db.VarChar(255)
+  discount_type  offers_discount_type
+  discount_value Decimal              @db.Decimal(10, 2)
+  starts_at      DateTime             @db.DateTime(0)
+  ends_at        DateTime             @db.DateTime(0)
+  active         Boolean              @default(true)
+  created_at     DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?            @default(now()) @db.Timestamp(0)
+  offer_items    offer_items[]
+
+  @@index([starts_at, ends_at], map: "idx_offers_dates")
+}
+
+model products {
+  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  category_id         BigInt?               @db.UnsignedBigInt
+  name                String                @db.VarChar(150)
+  description         String?               @db.Text
+  sku                 String?               @unique(map: "sku") @db.VarChar(80)
+  size                String?               @db.VarChar(30)
+  color               String?               @db.VarChar(50)
+  cost_price          Decimal               @default(0.00) @db.Decimal(10, 2)
+  sale_price          Decimal               @default(0.00) @db.Decimal(10, 2)
+  stock_quantity      Int                   @default(0)
+  minimum_stock       Int                   @default(0)
+  image_url           String?               @db.VarChar(500)
+  active              Boolean               @default(true)
+  created_at          DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(0)
+  inventory_movements inventory_movements[]
+  offer_items         offer_items[]
+  categories          categories?           @relation(fields: [category_id], references: [id], map: "fk_products_category")
+  sale_items          sale_items[]
+
+  @@index([category_id], map: "fk_products_category")
+  @@index([name], map: "idx_products_name")
+  @@index([stock_quantity], map: "idx_products_stock")
+}
+
+model sale_items {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  sale_id    BigInt   @db.UnsignedBigInt
+  product_id BigInt   @db.UnsignedBigInt
+  quantity   Int
+  unit_price Decimal  @db.Decimal(10, 2)
+  discount   Decimal  @default(0.00) @db.Decimal(10, 2)
+  total      Decimal  @db.Decimal(10, 2)
+  products   products @relation(fields: [product_id], references: [id], map: "fk_sale_items_product")
+  sales      sales    @relation(fields: [sale_id], references: [id], onDelete: Cascade, map: "fk_sale_items_sale")
+
+  @@index([product_id], map: "fk_sale_items_product")
+  @@index([sale_id], map: "fk_sale_items_sale")
+}
+
+model sales {
+  id                     BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  client_id              BigInt?                  @db.UnsignedBigInt
+  sale_date              DateTime                 @default(now()) @db.DateTime(0)
+  subtotal               Decimal                  @default(0.00) @db.Decimal(10, 2)
+  discount               Decimal                  @default(0.00) @db.Decimal(10, 2)
+  total                  Decimal                  @default(0.00) @db.Decimal(10, 2)
+  payment_method         sales_payment_method
+  payment_status         sales_payment_status     @default(PENDENTE)
+  due_date               DateTime?                @db.Date
+  notes                  String?                  @db.Text
+  created_at             DateTime?                @default(now()) @db.Timestamp(0)
+  updated_at             DateTime?                @default(now()) @db.Timestamp(0)
+  financial_transactions financial_transactions[]
+  inventory_movements    inventory_movements[]
+  sale_items             sale_items[]
+  clients                clients?                 @relation(fields: [client_id], references: [id], map: "fk_sales_client")
+
+  @@index([client_id], map: "idx_sales_client")
+  @@index([sale_date], map: "idx_sales_date")
+  @@index([payment_status], map: "idx_sales_payment_status")
+}
+
+model users {
+  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  name          String     @db.VarChar(150)
+  email         String     @unique(map: "email") @db.VarChar(150)
+  password_hash String     @db.VarChar(255)
+  role          users_role @default(CLIENTE)
+  created_at    DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at    DateTime?  @default(now()) @db.Timestamp(0)
+  clients       clients[]
+}
+
+enum financial_transactions_type {
+  ENTRADA
+  SAIDA
+}
+
+enum inventory_movements_type {
+  ENTRADA
+  SAIDA
+  AJUSTE
+  DEVOLUCAO
+}
+
+enum offers_discount_type {
+  PERCENTAGE
+  FIXED
+}
+
+enum users_role {
+  PATROA
+  CLIENTE
+}
+
+enum sales_payment_method {
+  PIX
+  DINHEIRO
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+  FIADO
+}
+
+enum financial_transactions_payment_method {
+  PIX
+  DINHEIRO
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+  TRANSFERENCIA
+  OUTRO
+}
+
+enum sales_payment_status {
+  PENDENTE
+  PAGO
+  PARCIAL
+  ATRASADO
+  CANCELADO
+}
