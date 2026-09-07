@@ -1,8 +1,6 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { products } from "@/data/products";
+import { getProducts } from "@/lib/products";
 import styles from "./page.module.css";
 
 const categories = [
@@ -12,8 +10,10 @@ const categories = [
   { name: "Bodies", icon: "✧", description: "Peças que valorizam" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const products = await getProducts();
   const featuredProducts = products.slice(0, 4);
+  const heroProduct = products[1] ?? products[0];
 
   return (
     <main className={styles.main}>
@@ -27,18 +27,20 @@ export default function Home() {
             <Link href="/produtos" className={styles.secondaryButton}>Ver coleção</Link>
           </div>
         </div>
-        <div className={styles.heroVisual}>
-          <Image
-            src={products[1].image}
-            alt="Conjunto Romance - JR Lingeries"
-            fill
-            priority
-            sizes="(max-width: 900px) 100vw, 45vw"
-            className={styles.heroImage}
-          />
-          <div className={styles.heroOverlay} aria-hidden="true" />
-          <span className={styles.floating}>Delicadeza<br />em cada detalhe</span>
-        </div>
+        {heroProduct && (
+          <div className={styles.heroVisual}>
+            <Image
+              src={heroProduct.image}
+              alt={`${heroProduct.name} - JR Lingeries`}
+              fill
+              priority
+              sizes="(max-width: 900px) 100vw, 45vw"
+              className={styles.heroImage}
+            />
+            <div className={styles.heroOverlay} aria-hidden="true" />
+            <span className={styles.floating}>Delicadeza<br />em cada detalhe</span>
+          </div>
+        )}
       </section>
 
       <section className={styles.benefits}>
