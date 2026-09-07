@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { products } from "@/data/products";
+import { getProductById } from "@/lib/products";
 import styles from "./page.module.css";
 import ProductDetails from "@/components/ProductDetails/ProductDetails";
 
@@ -11,13 +11,21 @@ interface ProductPageProps {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params;
-  const product = products.find((product) => product.id === Number(id));
+  const productId = Number(id);
+
+  if (!Number.isInteger(productId) || productId <= 0) {
+    notFound();
+  }
+
+  const product = await getProductById(productId);
 
   if (!product) notFound();
 
   return (
     <main className={styles.main}>
-      <Link href="/produtos" className={styles.back}>← Voltar para produtos</Link>
+      <Link href="/produtos" className={styles.back}>
+        ← Voltar para produtos
+      </Link>
 
       <section className={styles.product}>
         <div className={styles.imageContainer}>
@@ -35,8 +43,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <div className={styles.info}>
           <p className={styles.brand}>JR Lingeries</p>
           <h1>{product.name}</h1>
-          <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
-          <p className={styles.description}>Uma peça pensada para proporcionar conforto, delicadeza e beleza em todos os momentos.</p>
+          <p className={styles.price}>
+            R$ {product.price.toFixed(2).replace(".", ",")}
+          </p>
+          <p className={styles.description}>
+            {product.description ??
+              "Uma peça pensada para proporcionar conforto, delicadeza e beleza em todos os momentos."}
+          </p>
           <ProductDetails product={product} />
           <p className={styles.stock}>{product.stock} unidades disponíveis</p>
         </div>
