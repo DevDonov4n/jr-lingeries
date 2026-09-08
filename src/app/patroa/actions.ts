@@ -4,13 +4,10 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
-function assertPatroa() {
-  return getSession().then((session) => {
-    if (!session || session.role !== "PATROA") {
-      throw new Error("Não autorizado.");
-    }
-    return session;
-  });
+async function assertPatroa() {
+  const session = await getSession();
+  if (!session || session.role !== "PATROA") throw new Error("Não autorizado.");
+  return session;
 }
 
 function text(formData: FormData, key: string) {
@@ -20,23 +17,24 @@ function text(formData: FormData, key: string) {
 function decimal(formData: FormData, key: string) {
   const value = text(formData, key).replace(",", ".");
   const number = Number(value);
-  if (!Number.isFinite(number) || number < 0) {
-    throw new Error(`Valor inválido para ${key}.`);
-  }
+  if (!Number.isFinite(number) || number < 0) throw new Error(`Valor inválido para ${key}.`);
   return value || "0";
 }
 
 function nonNegativeInt(formData: FormData, key: string) {
   const value = Number(text(formData, key));
-  if (!Number.isInteger(value) || value < 0) {
-    throw new Error(`Valor inválido para ${key}.`);
-  }
+  if (!Number.isInteger(value) || value < 0) throw new Error(`Valor inválido para ${key}.`);
   return value;
 }
 
 function optionalBigInt(formData: FormData, key: string) {
   const value = text(formData, key);
-  return value ? BigInt(value) : null;
+  if (!value || value.startsWith("fallback-")) return null;
+  try {
+    return BigInt(value);
+  } catch {
+    throw new Error("Categoria inválida.");
+  }
 }
 
 function revalidateProducts() {
@@ -92,7 +90,13 @@ export async function updateProduct(formData: FormData) {
   const idValue = text(formData, "id");
   if (!idValue) throw new Error("Produto não informado.");
 
-  const id = BigInt(idValue);
+  let id: bigint;
+  try {
+    id = BigInt(idValue);
+  } catch {
+    throw new Error("Produto inválido.");
+  }
+
   const current = await prisma.products.findUnique({ where: { id } });
   if (!current) throw new Error("Produto não encontrado.");
 
@@ -144,7 +148,12 @@ export async function deleteProduct(formData: FormData) {
   const idValue = text(formData, "id");
   if (!idValue) throw new Error("Produto não informado.");
 
-  const id = BigInt(idValue);
+  let id: bigint;
+  try {
+    id = BigInt(idValue);
+  } catch {
+    throw new Error("Produto inválido.");
+  }
 
   const product = await prisma.products.findUnique({
     where: { id },
@@ -170,7 +179,13 @@ export async function toggleProductStatus(formData: FormData) {
   const idValue = text(formData, "id");
   if (!idValue) throw new Error("Produto não informado.");
 
-  const id = BigInt(idValue);
+  let id: bigint;
+  try {
+    id = BigInt(idValue);
+  } catch {
+    throw new Error("Produto inválido.");
+  }
+
   const product = await prisma.products.findUnique({ where: { id }, select: { active: true } });
   if (!product) throw new Error("Produto não encontrado.");
 
