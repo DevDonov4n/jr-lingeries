@@ -1,35 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import Link from "next/link";
-
+import { loginAction } from "./actions";
 import styles from "./page.module.css";
 
-const ADMIN_USER = "patroa";
-const ADMIN_PASSWORD = ["patroa", "123"].join("");
+const initialState = { error: "" };
 
 export default function Login() {
-  const router = useRouter();
-  const [usuario, setUsuario] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setErro("");
-    setLoading(true);
-
-    if (usuario.trim().toLowerCase() === ADMIN_USER && senha === ADMIN_PASSWORD) {
-      localStorage.setItem("jr-lingeries-auth", "patroa");
-      router.push("/patroa");
-      return;
-    }
-
-    setErro("Usuário ou senha incorretos.");
-    setLoading(false);
-  }
+  const [state, formAction, loading] = useActionState(loginAction, initialState);
 
   return (
     <main className={styles.page}>
@@ -40,34 +19,32 @@ export default function Login() {
           <p>Entre na sua conta para acessar a área da JR Lingeries.</p>
         </div>
 
-        <form className={styles.form} onSubmit={handleLogin}>
+        <form className={styles.form} action={formAction}>
           <div className={styles.field}>
-            <label htmlFor="usuario">Usuário</label>
+            <label htmlFor="email">E-mail</label>
             <input
-              id="usuario"
-              type="text"
-              value={usuario}
-              onChange={(event) => setUsuario(event.target.value)}
-              placeholder="Digite seu usuário"
-              autoComplete="username"
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Digite seu e-mail"
+              autoComplete="email"
               required
             />
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="senha">Senha</label>
+            <label htmlFor="password">Senha</label>
             <input
-              id="senha"
+              id="password"
+              name="password"
               type="password"
-              value={senha}
-              onChange={(event) => setSenha(event.target.value)}
               placeholder="Digite sua senha"
               autoComplete="current-password"
               required
             />
           </div>
 
-          {erro && <div className={styles.error}>{erro}</div>}
+          {state.error && <div className={styles.error}>{state.error}</div>}
 
           <button type="submit" disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
