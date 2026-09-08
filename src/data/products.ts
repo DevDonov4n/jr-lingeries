@@ -11,4 +11,8 @@ export interface Product {
   description?: string;
   color?: string | null;
   sku?: string | null;
+  originalPrice?: number;
+  discountAmount?: number;
+  discountPercent?: number;
+  offerName?: string;
 }
