@@ -26,6 +26,19 @@
   font-size: 0.75rem;
 }
 
+.discountBadge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 2;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background-color: #d45c72;
+  color: var(--branco);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .imageLink {
   position: absolute;
   inset: 0;
@@ -44,6 +57,27 @@
 .content h2 { font-size: 1.1rem; margin-bottom: 10px; }
 
 .price { font-size: 1.25rem; font-weight: bold; margin-bottom: 8px; }
+
+.priceBox { margin-bottom: 8px; }
+
+.originalPrice {
+  display: block;
+  font-size: 0.9rem;
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.discountPrice {
+  margin: 2px 0;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.offerName {
+  font-size: 0.75rem;
+  color: #d45c72;
+  font-weight: 700;
+}
 
 .stock { font-size: 0.85rem; margin-bottom: 18px; opacity: 0.7; }
 
