@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -40,6 +41,53 @@ function optionalBigInt(formData: FormData, key: string) {
 function revalidateProducts() {
   revalidatePath("/patroa");
   revalidatePath("/produtos");
+}
+
+function publicIdFromCloudinaryUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    const marker = "/image/upload/";
+    const markerIndex = parsed.pathname.indexOf(marker);
+    if (markerIndex === -1) return null;
+
+    let path = parsed.pathname.slice(markerIndex + marker.length);
+    const segments = path.split("/").filter(Boolean);
+    if (segments[0]?.startsWith("v") && /^v\d+$/.test(segments[0])) segments.shift();
+    if (!segments.length) return null;
+
+    const last = segments.length - 1;
+    segments[last] = segments[last].replace(/\.[^/.]+$/, "");
+    return segments.join("/");
+  } catch {
+    return null;
+  }
+}
+
+async function destroyCloudinaryImage(url: string | null) {
+  if (!url || !url.includes("res.cloudinary.com/")) return;
+
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  const publicId = publicIdFromCloudinaryUrl(url);
+  if (!cloudName || !apiKey || !apiSecret || !publicId) return;
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const serialized = `public_id=${publicId}&timestamp=${timestamp}`;
+  const signature = createHash("sha1").update(`${serialized}${apiSecret}`).digest("hex");
+
+  const body = new URLSearchParams({
+    public_id: publicId,
+    api_key: apiKey,
+    timestamp,
+    signature,
+  });
+
+  await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
 }
 
 export async function createProduct(formData: FormData) {
@@ -105,6 +153,7 @@ export async function updateProduct(formData: FormData) {
 
   const stock = nonNegativeInt(formData, "stock_quantity");
   const categoryId = optionalBigInt(formData, "category_id");
+  const newImageUrl = text(formData, "image_url") || null;
 
   await prisma.$transaction(async (tx) => {
     await tx.products.update({
@@ -120,7 +169,7 @@ export async function updateProduct(formData: FormData) {
         sale_price: decimal(formData, "sale_price"),
         stock_quantity: stock,
         minimum_stock: nonNegativeInt(formData, "minimum_stock"),
-        image_url: text(formData, "image_url") || null,
+        image_url: newImageUrl,
         updated_at: new Date(),
       },
     });
@@ -138,6 +187,10 @@ export async function updateProduct(formData: FormData) {
       });
     }
   });
+
+  if (current.image_url && current.image_url !== newImageUrl) {
+    await destroyCloudinaryImage(current.image_url);
+  }
 
   revalidateProducts();
 }
@@ -170,6 +223,7 @@ export async function deleteProduct(formData: FormData) {
   }
 
   await prisma.products.delete({ where: { id } });
+  await destroyCloudinaryImage(product.image_url);
   revalidateProducts();
 }
 
