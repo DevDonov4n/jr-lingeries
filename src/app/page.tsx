@@ -64,7 +64,10 @@ export default async function Home() {
 
       <section className={styles.newsletter}>
         <span>FIQUE POR DENTRO</span><h2>Novidades direto para você</h2><p>Cadastre seu e-mail e receba lançamentos e promoções da JR Lingeries.</p>
-        <form onSubmit={(event) => event.preventDefault()}><input type="email" placeholder="Seu melhor e-mail" aria-label="Seu melhor e-mail" required /><button type="submit">Quero receber</button></form>
+        <form>
+          <input type="email" placeholder="Seu melhor e-mail" aria-label="Seu melhor e-mail" required />
+          <button type="submit">Quero receber</button>
+        </form>
       </section>
     </main>
   );
