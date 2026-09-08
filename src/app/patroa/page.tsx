@@ -51,16 +51,12 @@ export default function Patroa() {
   const [promotionForm, setPromotionForm] = useState({ name: "", discount: "", category: "Todas" });
 
   useEffect(() => {
-    if (localStorage.getItem("jr-lingeries-auth") !== "patroa") {
-      router.replace("/login");
-      return;
-    }
-
+    // A proteção definitiva da rota será feita no servidor. Aqui mantemos apenas o estado visual.
     const savedProducts = localStorage.getItem("jr-lingeries-products");
     const savedPromotions = localStorage.getItem("jr-lingeries-promotions");
     if (savedProducts) setProducts(JSON.parse(savedProducts));
     if (savedPromotions) setPromotions(JSON.parse(savedPromotions));
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("jr-lingeries-products", JSON.stringify(products));
@@ -142,9 +138,10 @@ export default function Patroa() {
     setPromotions((current) => current.filter((promotion) => promotion.id !== id));
   }
 
-  function sair() {
-    localStorage.removeItem("jr-lingeries-auth");
+  async function sair() {
+    await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
+    router.refresh();
   }
 
   return (
@@ -167,12 +164,7 @@ export default function Patroa() {
 
         <button className={styles.logoutDesktop} onClick={sair}>Sair</button>
 
-        <button
-          className={styles.menuButton}
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
-          aria-expanded={menuOpen}
-        >
+        <button className={styles.menuButton} onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen}>
           <span className={styles.menuIcon}>{menuOpen ? "−" : "+"}</span>
         </button>
 
@@ -181,120 +173,52 @@ export default function Patroa() {
           <a href="#financeiro" onClick={fecharMenu}>Financeiro</a>
           <a href="#estoque" onClick={fecharMenu}>Estoque</a>
           <a href="#promocoes" onClick={fecharMenu}>Promoções</a>
-          <button onClick={() => { fecharMenu(); sair(); }}>Sair</button>
+          <button onClick={() => { fecharMenu(); void sair(); }}>Sair</button>
         </nav>
       </header>
 
       <div id="dashboard" className={styles.dashboardAnchor} />
 
       <section className={styles.cards}>
-        <article className={styles.card}>
-          <span>Total recebido</span>
-          <strong>{formatCurrency(financeiro.recebido)}</strong>
-          <small className={styles.positive}>Recebimentos confirmados</small>
-        </article>
-        <article className={styles.card}>
-          <span>Total a receber</span>
-          <strong>{formatCurrency(financeiro.receber)}</strong>
-          <small>Valores em aberto</small>
-        </article>
-        <article className={`${styles.card} ${styles.debtCard}`}>
-          <span>Saldo devedor</span>
-          <strong>{formatCurrency(financeiro.devedor)}</strong>
-          <small>Referente ao mês anterior</small>
-        </article>
-        <article className={styles.card}>
-          <span>Clientes ativos</span>
-          <strong>{financeiro.clientesAtivos}</strong>
-          <small>Clientes cadastrados</small>
-        </article>
+        <article className={styles.card}><span>Total recebido</span><strong>{formatCurrency(financeiro.recebido)}</strong><small className={styles.positive}>Recebimentos confirmados</small></article>
+        <article className={styles.card}><span>Total a receber</span><strong>{formatCurrency(financeiro.receber)}</strong><small>Valores em aberto</small></article>
+        <article className={`${styles.card} ${styles.debtCard}`}><span>Saldo devedor</span><strong>{formatCurrency(financeiro.devedor)}</strong><small>Referente ao mês anterior</small></article>
+        <article className={styles.card}><span>Clientes ativos</span><strong>{financeiro.clientesAtivos}</strong><small>Clientes cadastrados</small></article>
       </section>
 
       <section id="financeiro" className={styles.analytics}>
         <div className={styles.panel}>
-          <div className={styles.panelHeading}>
-            <div>
-              <span className={styles.eyebrow}>Financeiro</span>
-              <h2>Resumo financeiro</h2>
-            </div>
-            <span className={styles.chartBadge}>Visão geral</span>
-          </div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>Financeiro</span><h2>Resumo financeiro</h2></div><span className={styles.chartBadge}>Visão geral</span></div>
           <div className={styles.financeChart}>
-            <div
-              className={styles.donut}
-              style={{ "--progress": `${percentualRecebido}%` } as React.CSSProperties}
-            >
-              <div className={styles.donutCenter}>
-                <strong>{percentualRecebido}%</strong>
-                <span>recebido</span>
-              </div>
-            </div>
+            <div className={styles.donut} style={{ "--progress": `${percentualRecebido}%` } as React.CSSProperties}><div className={styles.donutCenter}><strong>{percentualRecebido}%</strong><span>recebido</span></div></div>
             <div className={styles.chartLegend}>
-              <div className={styles.legendItem}>
-                <span className={`${styles.legendDot} ${styles.receivedDot}`} />
-                <div><strong>{formatCurrency(financeiro.recebido)}</strong><span>Recebido</span></div>
-              </div>
-              <div className={styles.legendItem}>
-                <span className={`${styles.legendDot} ${styles.toReceiveDot}`} />
-                <div><strong>{formatCurrency(financeiro.receber)}</strong><span>A receber</span></div>
-              </div>
+              <div className={styles.legendItem}><span className={`${styles.legendDot} ${styles.receivedDot}`} /><div><strong>{formatCurrency(financeiro.recebido)}</strong><span>Recebido</span></div></div>
+              <div className={styles.legendItem}><span className={`${styles.legendDot} ${styles.toReceiveDot}`} /><div><strong>{formatCurrency(financeiro.receber)}</strong><span>A receber</span></div></div>
               <div className={styles.totalLine}><span>Movimentação prevista</span><strong>{formatCurrency(totalFinanceiro)}</strong></div>
             </div>
           </div>
         </div>
 
         <div className={styles.panel}>
-          <div className={styles.panelHeading}>
-            <div>
-              <span className={styles.eyebrow}>Estoque</span>
-              <h2>Peças por categoria</h2>
-            </div>
-            <span className={styles.chartBadge}>{totalPecas} peças</span>
-          </div>
-          <div className={styles.barChart}>
-            {estoquePorCategoria.map((item) => (
-              <div className={styles.barRow} key={item.categoria}>
-                <div className={styles.barLabel}><span>{item.categoria}</span><strong>{item.quantidade}</strong></div>
-                <div className={styles.barTrack}>
-                  <div className={styles.barFill} style={{ width: `${(item.quantidade / maiorEstoque) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>Estoque</span><h2>Peças por categoria</h2></div><span className={styles.chartBadge}>{totalPecas} peças</span></div>
+          <div className={styles.barChart}>{estoquePorCategoria.map((item) => <div className={styles.barRow} key={item.categoria}><div className={styles.barLabel}><span>{item.categoria}</span><strong>{item.quantidade}</strong></div><div className={styles.barTrack}><div className={styles.barFill} style={{ width: `${(item.quantidade / maiorEstoque) * 100}%` }} /></div></div>)}</div>
         </div>
       </section>
 
       <section id="estoque" className={styles.content}>
         <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <div><h2>Estoque</h2><p>{totalPecas} peças cadastradas</p></div>
-          </div>
-          <div className={styles.productList}>
-            {products.map((product) => (
-              <div className={styles.productItem} key={product.id}>
-                <div><strong>{product.name}</strong><span>{product.category} · {product.stock} peças · {formatCurrency(product.price)}</span></div>
-                <div className={styles.actions}>
-                  <button onClick={() => editarProduto(product)}>Editar</button>
-                  <button className={styles.deleteButton} onClick={() => excluirProduto(product.id)}>Excluir</button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className={styles.panelTitle}><div><h2>Estoque</h2><p>{totalPecas} peças cadastradas</p></div></div>
+          <div className={styles.productList}>{products.map((product) => <div className={styles.productItem} key={product.id}><div><strong>{product.name}</strong><span>{product.category} · {product.stock} peças · {formatCurrency(product.price)}</span></div><div className={styles.actions}><button onClick={() => editarProduto(product)}>Editar</button><button className={styles.deleteButton} onClick={() => excluirProduto(product.id)}>Excluir</button></div></div>)}</div>
         </div>
 
         <div className={styles.panel}>
           <h2>{editingId === null ? "Adicionar produto" : "Alterar produto"}</h2>
           <form className={styles.form} onSubmit={handleProductSubmit}>
             <input placeholder="Nome do produto" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required />
-            <select value={productForm.category} onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}>
-              <option>Calcinhas</option><option>Sutiãs</option><option>Cuecas</option><option>Conjuntos</option><option>Bodies</option>
-            </select>
+            <select value={productForm.category} onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}><option>Calcinhas</option><option>Sutiãs</option><option>Cuecas</option><option>Conjuntos</option><option>Bodies</option></select>
             <input type="number" min="0" step="0.01" placeholder="Preço (R$)" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required />
             <input type="number" min="0" placeholder="Quantidade em estoque" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} required />
-            <div className={styles.formActions}>
-              <button type="submit">{editingId === null ? "Adicionar produto" : "Salvar alterações"}</button>
-              {editingId !== null && <button type="button" className={styles.cancelButton} onClick={() => { setEditingId(null); setProductForm({ name: "", category: "Calcinhas", price: "", stock: "" }); }}>Cancelar</button>}
-            </div>
+            <div className={styles.formActions}><button type="submit">{editingId === null ? "Adicionar produto" : "Salvar alterações"}</button>{editingId !== null && <button type="button" className={styles.cancelButton} onClick={() => { setEditingId(null); setProductForm({ name: "", category: "Calcinhas", price: "", stock: "" }); }}>Cancelar</button>}</div>
           </form>
         </div>
       </section>
@@ -305,25 +229,14 @@ export default function Patroa() {
           <form className={styles.form} onSubmit={criarPromocao}>
             <input placeholder="Nome da promoção" value={promotionForm.name} onChange={(e) => setPromotionForm({ ...promotionForm, name: e.target.value })} required />
             <input type="number" min="1" max="100" placeholder="Desconto (%)" value={promotionForm.discount} onChange={(e) => setPromotionForm({ ...promotionForm, discount: e.target.value })} required />
-            <select value={promotionForm.category} onChange={(e) => setPromotionForm({ ...promotionForm, category: e.target.value })}>
-              <option>Todas</option><option>Calcinhas</option><option>Sutiãs</option><option>Cuecas</option><option>Conjuntos</option><option>Bodies</option>
-            </select>
+            <select value={promotionForm.category} onChange={(e) => setPromotionForm({ ...promotionForm, category: e.target.value })}><option>Todas</option><option>Calcinhas</option><option>Sutiãs</option><option>Cuecas</option><option>Conjuntos</option><option>Bodies</option></select>
             <button type="submit">Criar promoção</button>
           </form>
         </div>
 
         <div className={styles.panel}>
           <h2>Promoções ativas</h2>
-          {promotions.length === 0 ? <p className={styles.empty}>Nenhuma promoção criada.</p> : (
-            <div className={styles.productList}>
-              {promotions.map((promotion) => (
-                <div className={styles.productItem} key={promotion.id}>
-                  <div><strong>{promotion.name}</strong><span>{promotion.category} · {promotion.discount}% de desconto</span></div>
-                  <button className={styles.deleteButton} onClick={() => excluirPromocao(promotion.id)}>Excluir</button>
-                </div>
-              ))}
-            </div>
-          )}
+          {promotions.length === 0 ? <p className={styles.empty}>Nenhuma promoção criada.</p> : <div className={styles.productList}>{promotions.map((promotion) => <div className={styles.productItem} key={promotion.id}><div><strong>{promotion.name}</strong><span>{promotion.category} · {promotion.discount}% de desconto</span></div><button className={styles.deleteButton} onClick={() => excluirPromocao(promotion.id)}>Excluir</button></div>)}</div>}
         </div>
       </section>
     </main>
