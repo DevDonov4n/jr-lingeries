@@ -26,12 +26,16 @@ function mapProduct(product: {
   image_url: string | null;
   categories: { name: string } | null;
 }): Product {
+  const image = product.image_url
+    ? imageMap[product.image_url] ?? product.image_url
+    : conjuntoElegance;
+
   return {
     id: Number(product.id),
     name: product.name,
     category: product.categories?.name ?? "Sem categoria",
     price: Number(product.sale_price),
-    image: imageMap[product.image_url ?? ""] ?? conjuntoElegance,
+    image,
     sizes: product.size
       ? product.size.split(",").map((size) => size.trim()).filter(Boolean)
       : [],
