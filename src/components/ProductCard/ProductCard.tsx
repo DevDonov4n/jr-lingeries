@@ -8,10 +8,17 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const hasDiscount = !!product.originalPrice && product.originalPrice > product.price;
+
   return (
     <article className={styles.card}>
       <div className={styles.imageContainer}>
         <span className={styles.category}>{product.category}</span>
+        {hasDiscount && (
+          <span className={styles.discountBadge}>
+            {Math.round(product.discountPercent ?? 0)}% OFF
+          </span>
+        )}
 
         <Link href={`/produtos/${product.id}`} className={styles.imageLink}>
           <Image
@@ -27,7 +34,23 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       <div className={styles.content}>
         <h2>{product.name}</h2>
-        <p className={styles.price}>R$ {product.price.toFixed(2).replace(".", ",")}</p>
+
+        {hasDiscount ? (
+          <div className={styles.priceBox}>
+            <span className={styles.originalPrice}>
+              R$ {product.originalPrice!.toFixed(2).replace(".", ",")}
+            </span>
+            <p className={styles.discountPrice}>
+              R$ {product.price.toFixed(2).replace(".", ",")}
+            </p>
+            <span className={styles.offerName}>{product.offerName}</span>
+          </div>
+        ) : (
+          <p className={styles.price}>
+            R$ {product.price.toFixed(2).replace(".", ",")}
+          </p>
+        )}
+
         <p className={styles.stock}>{product.stock} unidades disponíveis</p>
         <Link href={`/produtos/${product.id}`} className={styles.button}>
           Ver produto
