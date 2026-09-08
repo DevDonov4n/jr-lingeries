@@ -7,37 +7,13 @@ export default async function PatroaPage() {
   const session = await getSession();
   if (!session || session.role !== "PATROA") redirect("/login");
 
-  const [products, categories] = await Promise.all([
-    prisma.products.findMany({
-      orderBy: { created_at: "desc" },
-      include: { categories: { select: { id: true, name: true } } },
-    }),
-    prisma.categories.findMany({
-      where: { active: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
+  const [products, categories, clients, paid, pending] = await Promise.all([
+    prisma.products.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, category_id: true, stock_quantity: true } }),
+    prisma.categories.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.clients.count({ where: { active: true } }),
+    prisma.sales.aggregate({ where: { payment_status: "PAGO" }, _sum: { total: true } }),
+    prisma.sales.aggregate({ where: { payment_status: { in: ["PENDENTE", "PARCIAL", "ATRASADO"] } }, _sum: { total: true } }),
   ]);
 
-  return (
-    <PatroaClient
-      initialProducts={products.map((product) => ({
-        id: product.id.toString(),
-        name: product.name,
-        category: product.categories?.name ?? "",
-        categoryId: product.categories?.id.toString() ?? "",
-        description: product.description ?? "",
-        sku: product.sku ?? "",
-        size: product.size ?? "",
-        color: product.color ?? "",
-        costPrice: Number(product.cost_price),
-        price: Number(product.sale_price),
-        stock: product.stock_quantity,
-        minimumStock: product.minimum_stock,
-        imageUrl: product.image_url ?? "",
-        active: product.active,
-      }))}
-      categories={categories.map((category) => ({ id: category.id.toString(), name: category.name }))}
-    />
-  );
+  return <PatroaClient products={products.map((p) => ({ id: p.id.toString(), name: p.name, categoryId: p.category_id?.toString() ?? "", stock: p.stock_quantity }))} categories={categories.map((c) => ({ id: c.id.toString(), name: c.name }))} clients={clients} received={Number(paid._sum.total ?? 0)} toReceive={Number(pending._sum.total ?? 0)} />;
 }
