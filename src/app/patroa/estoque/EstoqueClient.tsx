@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import { createProduct, deleteProduct, toggleProductStatus, updateProduct } from "../actions";
@@ -37,7 +37,7 @@ export default function EstoqueClient({ initialProducts, categories }: { initial
   function openCreate() { setEditingId(null); setForm(emptyForm(categories[0]?.id ?? "")); setPreview(""); setMessage(""); setModalOpen(true); }
   function openEdit(p: Product) { setEditingId(p.id); setForm({ name: p.name, categoryId: p.categoryId, description: p.description, sku: p.sku, size: p.size, color: p.color, costPrice: String(p.costPrice), price: String(p.price), stock: String(p.stock), minimumStock: String(p.minimumStock), imageUrl: p.imageUrl }); setPreview(p.imageUrl); setMessage(""); setModalOpen(true); }
   function closeModal() { if (!saving) setModalOpen(false); }
-  function selectImage(event: React.ChangeEvent<HTMLInputElement>) { const file = event.target.files?.[0]; if (!file) return; if (!file.type.startsWith("image/")) return setMessage("Selecione um arquivo de imagem."); if (file.size > 5 * 1024 * 1024) return setMessage("A imagem deve ter no máximo 5 MB."); setPreview(URL.createObjectURL(file)); setMessage(""); }
+  function selectImage(event: ChangeEvent<HTMLInputElement>) { const file = event.target.files?.[0]; if (!file) return; if (!file.type.startsWith("image/")) return setMessage("Selecione um arquivo de imagem."); if (file.size > 5 * 1024 * 1024) return setMessage("A imagem deve ter no máximo 5 MB."); setPreview(URL.createObjectURL(file)); setMessage(""); }
   async function uploadImage(file: File) { const data = new FormData(); data.append("file", file); const response = await fetch("/api/patroa/cloudinary/upload", { method: "POST", body: data }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Não foi possível enviar a imagem."); return String(result.url); }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
