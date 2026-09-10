@@ -1,10 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createCategory } from "../actions";
 import styles from "./page.module.css";
 
 export default function CategoryManager({ categories }: { categories: { id: string; name: string }[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -19,7 +21,8 @@ export default function CategoryManager({ categories }: { categories: { id: stri
       await createCategory(data);
       setName("");
       setOpen(false);
-      setMessage("Categoria criada com sucesso. Atualize a página para utilizá-la no cadastro de produtos.");
+      setMessage("Categoria criada com sucesso.");
+      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível criar a categoria.");
     } finally {
