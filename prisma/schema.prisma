@@ -8,12 +8,13 @@ datasource db {
 }
 
 model categories {
-  id          BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
-  name        String     @unique(map: "name") @db.VarChar(100)
-  description String?    @db.VarChar(255)
-  active      Boolean    @default(true)
-  created_at  DateTime?  @default(now()) @db.Timestamp(0)
-  products    products[]
+  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  name                String                @unique(map: "name") @db.VarChar(100)
+  description         String?               @db.VarChar(255)
+  active              Boolean               @default(true)
+  created_at          DateTime?             @default(now()) @db.Timestamp(0)
+  products            products[]
+  product_suggestions product_suggestions[]
 }
 
 model clients {
@@ -37,6 +38,18 @@ model clients {
   sales        sales[]
   @@index([user_id], map: "fk_clients_user")
   @@index([name], map: "idx_clients_name")
+}
+
+model favorites {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id    BigInt   @db.UnsignedBigInt
+  product_id BigInt   @db.UnsignedBigInt
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_favorites_user")
+  products   products @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "fk_favorites_product")
+  @@unique([user_id, product_id], map: "unique_user_product_favorite")
+  @@index([user_id], map: "idx_favorites_user")
+  @@index([product_id], map: "idx_favorites_product")
 }
 
 model financial_transactions {
@@ -92,7 +105,7 @@ model offers {
   ends_at        DateTime             @db.DateTime(0)
   active         Boolean              @default(true)
   created_at     DateTime?            @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?            @default(now()) @db.Timestamp(0)
   offer_items    offer_items[]
   @@index([starts_at, ends_at], map: "idx_offers_dates")
 }
@@ -113,6 +126,7 @@ model products {
   active              Boolean               @default(true)
   created_at          DateTime?             @default(now()) @db.Timestamp(0)
   updated_at          DateTime?             @default(now()) @db.Timestamp(0)
+  favorites           favorites[]
   inventory_movements inventory_movements[]
   offer_items         offer_items[]
   categories          categories?           @relation(fields: [category_id], references: [id], map: "fk_products_category")
@@ -121,6 +135,24 @@ model products {
   @@index([category_id], map: "fk_products_category")
   @@index([name], map: "idx_products_name")
   @@index([stock_quantity], map: "idx_products_stock")
+}
+
+model product_suggestions {
+  id          BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id     BigInt                    @db.UnsignedBigInt
+  category_id BigInt?                   @db.UnsignedBigInt
+  name        String                    @db.VarChar(150)
+  color       String?                   @db.VarChar(50)
+  size        String?                   @db.VarChar(30)
+  description String?                   @db.Text
+  status      product_suggestions_status @default(PENDENTE)
+  created_at  DateTime?                 @default(now()) @db.Timestamp(0)
+  updated_at  DateTime?                 @default(now()) @db.Timestamp(0)
+  users       users                     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_suggestions_user")
+  categories  categories?               @relation(fields: [category_id], references: [id], onDelete: SetNull, map: "fk_suggestions_category")
+  @@index([user_id], map: "idx_suggestions_user")
+  @@index([category_id], map: "idx_suggestions_category")
+  @@index([status], map: "idx_suggestions_status")
 }
 
 model product_variants {
@@ -175,14 +207,16 @@ model sales {
 }
 
 model users {
-  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
-  name          String     @db.VarChar(150)
-  email         String     @unique(map: "email") @db.VarChar(150)
-  password_hash String     @db.VarChar(255)
-  role          users_role @default(CLIENTE)
-  created_at    DateTime?  @default(now()) @db.Timestamp(0)
-  updated_at    DateTime?  @default(now()) @db.Timestamp(0)
-  clients       clients[]
+  id                  BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  name                String                    @db.VarChar(150)
+  email               String                    @unique(map: "email") @db.VarChar(150)
+  password_hash       String                    @db.VarChar(255)
+  role                users_role                @default(CLIENTE)
+  created_at          DateTime?                 @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?                 @default(now()) @db.Timestamp(0)
+  clients             clients[]
+  favorites           favorites[]
+  product_suggestions product_suggestions[]
 }
 
 enum financial_transactions_type {
@@ -230,4 +264,10 @@ enum sales_payment_status {
   PARCIAL
   ATRASADO
   CANCELADO
+}
+
+enum product_suggestions_status {
+  PENDENTE
+  ANALISADA
+  ATENDIDA
 }
