@@ -44,7 +44,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
         <div className={styles.info}>
           <p className={styles.brand}>JR Lingeries</p>
-          <h1>{product.name}</h1>
+          <h1 id="product-name">{product.name}</h1>
 
           {hasDiscount ? (
             <div className={styles.priceBox}>
