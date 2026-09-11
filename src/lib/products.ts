@@ -15,18 +15,18 @@ const imageMap: Record<string, StaticImageData> = {
   "SutiaComfort.jpg": sutiaComfort,
 };
 
-type VariantRow = { product_id: bigint; color: string; stock_quantity: number; active: boolean };
+type VariantRow = { product_id: bigint; color: string; color_hex: string; stock_quantity: number; active: boolean };
 
 async function getVariants(productIds?: bigint[]) {
   if (productIds && productIds.length === 0) return new Map<string, ProductColor[]>();
   const rows = productIds
-    ? await prisma.$queryRaw<VariantRow[]>`SELECT product_id, color, stock_quantity, active FROM product_variants WHERE product_id IN (${Prisma.join(productIds)}) ORDER BY color ASC`
-    : await prisma.$queryRaw<VariantRow[]>`SELECT product_id, color, stock_quantity, active FROM product_variants ORDER BY color ASC`;
+    ? await prisma.$queryRaw<VariantRow[]>`SELECT product_id, color, color_hex, stock_quantity, active FROM product_variants WHERE product_id IN (${Prisma.join(productIds)}) ORDER BY color ASC`
+    : await prisma.$queryRaw<VariantRow[]>`SELECT product_id, color, color_hex, stock_quantity, active FROM product_variants ORDER BY color ASC`;
   const map = new Map<string, ProductColor[]>();
   for (const row of rows) {
     const key = row.product_id.toString();
     const list = map.get(key) ?? [];
-    list.push({ color: row.color, stock: Number(row.stock_quantity), active: Boolean(row.active) });
+    list.push({ color: row.color, colorHex: row.color_hex, stock: Number(row.stock_quantity), active: Boolean(row.active) });
     map.set(key, list);
   }
   return map;
