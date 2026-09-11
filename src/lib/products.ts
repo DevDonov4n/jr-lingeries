@@ -1,5 +1,6 @@
 import type { StaticImageData } from "next/image";
 import prisma from "@/lib/prisma";
+import { Prisma } from "../../generated/prisma/client";
 import type { Product, ProductColor } from "@/data/products";
 
 import bodyDelicate from "@/assets/BodyDelicate.jpg";
@@ -19,7 +20,7 @@ type VariantRow = { product_id: bigint; color: string; stock_quantity: number; a
 async function getVariants(productIds?: bigint[]) {
   if (productIds && productIds.length === 0) return new Map<string, ProductColor[]>();
   const rows = productIds
-    ? await prisma.$queryRaw<VariantRow[]>`SELECT product_id, color, stock_quantity, active FROM product_variants WHERE product_id IN (${prisma.join(productIds)}) ORDER BY color ASC`
+    ? await prisma.$queryRaw<VariantRow[]>`SELECT product_id, color, stock_quantity, active FROM product_variants WHERE product_id IN (${Prisma.join(productIds)}) ORDER BY color ASC`
     : await prisma.$queryRaw<VariantRow[]>`SELECT product_id, color, stock_quantity, active FROM product_variants ORDER BY color ASC`;
   const map = new Map<string, ProductColor[]>();
   for (const row of rows) {
