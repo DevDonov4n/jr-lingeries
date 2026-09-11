@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { changePassword, updateProfile } from "./actions";
 import styles from "./page.module.css";
 
 type User = {
@@ -18,6 +19,38 @@ type User = {
 
 export default function ClienteClient({ user }: { user: User }) {
   const [editing, setEditing] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingProfile(true);
+    setProfileMessage("");
+
+    const result = await updateProfile(new FormData(event.currentTarget));
+    setProfileMessage(result.error ?? result.success ?? "");
+    setSavingProfile(false);
+
+    if (result.success) {
+      setEditing(false);
+      window.location.reload();
+    }
+  }
+
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingPassword(true);
+    setPasswordMessage("");
+
+    const form = event.currentTarget;
+    const result = await changePassword(new FormData(form));
+    setPasswordMessage(result.error ?? result.success ?? "");
+    setSavingPassword(false);
+
+    if (result.success) form.reset();
+  }
 
   return (
     <main className={styles.page}>
@@ -37,15 +70,17 @@ export default function ClienteClient({ user }: { user: User }) {
               <span className={styles.eyebrow}>Dados pessoais</span>
               <h2>Meu cadastro</h2>
             </div>
-            <button type="button" onClick={() => setEditing((value) => !value)}>
+            <button type="button" className={styles.secondaryButton} onClick={() => { setEditing((value) => !value); setProfileMessage(""); }}>
               {editing ? "Cancelar" : "Editar"}
             </button>
           </div>
 
+          {profileMessage && <p className={profileMessage.includes("sucesso") ? styles.success : styles.error}>{profileMessage}</p>}
+
           {editing ? (
-            <form className={styles.form}>
-              <label>Nome<input name="name" defaultValue={user.name} /></label>
-              <label>E-mail<input name="email" type="email" defaultValue={user.email} /></label>
+            <form className={styles.form} onSubmit={handleProfileSubmit}>
+              <label>Nome<input name="name" required defaultValue={user.name} /></label>
+              <label>E-mail<input name="email" type="email" required defaultValue={user.email} /></label>
               <label>Telefone<input name="phone" defaultValue={user.phone} /></label>
               <div className={styles.formRow}>
                 <label>CEP<input name="zipCode" defaultValue={user.zipCode} /></label>
@@ -55,9 +90,11 @@ export default function ClienteClient({ user }: { user: User }) {
               <label>Bairro<input name="neighborhood" defaultValue={user.neighborhood} /></label>
               <div className={styles.formRow}>
                 <label>Cidade<input name="city" defaultValue={user.city} /></label>
-                <label>Estado<input name="state" defaultValue={user.state} /></label>
+                <label>Estado<input name="state" maxLength={2} defaultValue={user.state} /></label>
               </div>
-              <button className={styles.primaryButton} type="submit">Salvar alterações</button>
+              <button className={styles.primaryButton} type="submit" disabled={savingProfile}>
+                {savingProfile ? "Salvando..." : "Salvar alterações"}
+              </button>
             </form>
           ) : (
             <div className={styles.details}>
@@ -86,7 +123,16 @@ export default function ClienteClient({ user }: { user: User }) {
           <div className={styles.passwordCard}>
             <span className={styles.eyebrow}>Segurança</span>
             <h2>Alterar senha</h2>
-            <p>A alteração de senha será disponibilizada junto à edição segura do cadastro.</p>
+            <p>Troque sua senha usando a senha atual para confirmar sua identidade.</p>
+            {passwordMessage && <p className={passwordMessage.includes("sucesso") ? styles.success : styles.error}>{passwordMessage}</p>}
+            <form className={styles.form} onSubmit={handlePasswordSubmit}>
+              <label>Senha atual<input name="currentPassword" type="password" autoComplete="current-password" required /></label>
+              <label>Nova senha<input name="newPassword" type="password" autoComplete="new-password" minLength={6} required /></label>
+              <label>Confirmar nova senha<input name="confirmPassword" type="password" autoComplete="new-password" minLength={6} required /></label>
+              <button className={styles.primaryButton} type="submit" disabled={savingPassword}>
+                {savingPassword ? "Alterando..." : "Alterar senha"}
+              </button>
+            </form>
           </div>
         </aside>
       </section>
