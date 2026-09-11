@@ -28,19 +28,22 @@ function nonNegativeInt(formData: FormData, key: string) {
   return value;
 }
 
+function requiredBigInt(formData: FormData, key: string, label: string) {
+  const value = text(formData, key);
+  if (!value || value.startsWith("fallback-")) throw new Error(`${label} inválida.`);
+  try { return BigInt(value); } catch { throw new Error(`${label} inválida.`); }
+}
+
 function optionalBigInt(formData: FormData, key: string) {
   const value = text(formData, key);
   if (!value || value.startsWith("fallback-")) return null;
-  try {
-    return BigInt(value);
-  } catch {
-    throw new Error("Categoria inválida.");
-  }
+  try { return BigInt(value); } catch { throw new Error("Categoria inválida."); }
 }
 
 function revalidateProducts() {
   revalidatePath("/patroa");
   revalidatePath("/patroa/estoque");
+  revalidatePath("/patroa/categorias");
   revalidatePath("/produtos");
 }
 
@@ -52,6 +55,39 @@ export async function createCategory(formData: FormData) {
   const existing = await prisma.categories.findUnique({ where: { name } });
   if (existing) throw new Error("Essa categoria já existe.");
   await prisma.categories.create({ data: { name, description: text(formData, "description") || null, active: true } });
+  revalidateProducts();
+}
+
+export async function updateCategory(formData: FormData) {
+  await assertPatroa();
+  const id = requiredBigInt(formData, "id", "Categoria");
+  const name = text(formData, "name");
+  if (!name) throw new Error("Informe o nome da categoria.");
+  if (name.length > 100) throw new Error("O nome da categoria deve ter no máximo 100 caracteres.");
+  const category = await prisma.categories.findUnique({ where: { id } });
+  if (!category) throw new Error("Categoria não encontrada.");
+  const duplicate = await prisma.categories.findFirst({ where: { name, NOT: { id } }, select: { id: true } });
+  if (duplicate) throw new Error("Essa categoria já existe.");
+  await prisma.categories.update({ where: { id }, data: { name, description: text(formData, "description") || null } });
+  revalidateProducts();
+}
+
+export async function toggleCategoryStatus(formData: FormData) {
+  await assertPatroa();
+  const id = requiredBigInt(formData, "id", "Categoria");
+  const category = await prisma.categories.findUnique({ where: { id }, select: { active: true } });
+  if (!category) throw new Error("Categoria não encontrada.");
+  await prisma.categories.update({ where: { id }, data: { active: !category.active } });
+  revalidateProducts();
+}
+
+export async function deleteCategory(formData: FormData) {
+  await assertPatroa();
+  const id = requiredBigInt(formData, "id", "Categoria");
+  const category = await prisma.categories.findUnique({ where: { id }, include: { _count: { select: { products: true } } } });
+  if (!category) throw new Error("Categoria não encontrada.");
+  if (category._count.products > 0) throw new Error("Esta categoria possui produtos vinculados. Mova os produtos para outra categoria antes de excluí-la.");
+  await prisma.categories.delete({ where: { id } });
   revalidateProducts();
 }
 
