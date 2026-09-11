@@ -5,105 +5,39 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
-async function assertPatroa() {
-  const session = await getSession();
-  if (!session || session.role !== "PATROA") throw new Error("Não autorizado.");
-  return session;
-}
+async function assertPatroa() { const session = await getSession(); if (!session || session.role !== "PATROA") throw new Error("Não autorizado."); return session; }
 function text(formData: FormData, key: string) { return String(formData.get(key) ?? "").trim(); }
 function decimal(formData: FormData, key: string) { const value = text(formData, key).replace(",", "."); const number = Number(value); if (!Number.isFinite(number) || number < 0) throw new Error(`Valor inválido para ${key}.`); return value || "0"; }
 function nonNegativeInt(formData: FormData, key: string) { const value = Number(text(formData, key)); if (!Number.isInteger(value) || value < 0) throw new Error(`Valor inválido para ${key}.`); return value; }
 function requiredBigInt(formData: FormData, key: string, label: string) { const value = text(formData, key); if (!value || value.startsWith("fallback-")) throw new Error(`${label} inválida.`); try { return BigInt(value); } catch { throw new Error(`${label} inválida.`); } }
 function optionalBigInt(formData: FormData, key: string) { const value = text(formData, key); if (!value || value.startsWith("fallback-")) return null; try { return BigInt(value); } catch { throw new Error("Categoria inválida."); } }
 function revalidateProducts() { revalidatePath("/patroa"); revalidatePath("/patroa/estoque"); revalidatePath("/patroa/categorias"); revalidatePath("/produtos"); }
-
 function parseColors(formData: FormData) {
-  const raw = text(formData, "colors");
-  if (!raw) return [] as { color: string; stock: number }[];
-  let parsed: unknown;
-  try { parsed = JSON.parse(raw); } catch { throw new Error("Formato das cores inválido."); }
+  const raw = text(formData, "colors"); if (!raw) return [] as { color: string; stock: number }[];
+  let parsed: unknown; try { parsed = JSON.parse(raw); } catch { throw new Error("Formato das cores inválido."); }
   if (!Array.isArray(parsed)) throw new Error("Formato das cores inválido.");
-  const colors = parsed.map((item) => {
-    if (!item || typeof item !== "object") throw new Error("Cor inválida.");
-    const color = String((item as { color?: unknown }).color ?? "").trim();
-    const stock = Number((item as { stock?: unknown }).stock ?? 0);
-    if (!color || color.length > 50) throw new Error("Cada cor deve ter entre 1 e 50 caracteres.");
-    if (!Number.isInteger(stock) || stock < 0) throw new Error(`Estoque inválido para a cor ${color}.`);
-    return { color, stock };
-  });
-  const normalized = colors.map((item) => item.color.toLocaleLowerCase("pt-BR"));
-  if (new Set(normalized).size !== normalized.length) throw new Error("Não é possível cadastrar a mesma cor duas vezes.");
-  return colors;
+  const colors = parsed.map((item) => { if (!item || typeof item !== "object") throw new Error("Cor inválida."); const color = String((item as { color?: unknown }).color ?? "").trim(); const stock = Number((item as { stock?: unknown }).stock ?? 0); if (!color || color.length > 50) throw new Error("Cada cor deve ter entre 1 e 50 caracteres."); if (!Number.isInteger(stock) || stock < 0) throw new Error(`Estoque inválido para a cor ${color}.`); return { color, stock }; });
+  const normalized = colors.map((item) => item.color.toLocaleLowerCase("pt-BR")); if (new Set(normalized).size !== normalized.length) throw new Error("Não é possível cadastrar a mesma cor duas vezes."); return colors;
 }
+async function replaceVariants(productId: bigint, colors: { color: string; stock: number }[]) { await prisma.$executeRaw`DELETE FROM product_variants WHERE product_id = ${productId}`; for (const variant of colors) await prisma.$executeRaw`INSERT INTO product_variants (product_id, color, stock_quantity, active) VALUES (${productId}, ${variant.color}, ${variant.stock}, ${variant.stock > 0})`; }
 
-async function replaceVariants(productId: bigint, colors: { color: string; stock: number }[]) {
-  await prisma.$executeRaw`DELETE FROM product_variants WHERE product_id = ${productId}`;
-  for (const variant of colors) {
-    await prisma.$executeRaw`INSERT INTO product_variants (product_id, color, stock_quantity, active) VALUES (${productId}, ${variant.color}, ${variant.stock}, ${variant.stock > 0})`;
-  }
-}
-
-export async function createCategory(formData: FormData) {
-  await assertPatroa(); const name = text(formData, "name");
-  if (!name) throw new Error("Informe o nome da categoria."); if (name.length > 100) throw new Error("O nome da categoria deve ter no máximo 100 caracteres.");
-  if (await prisma.categories.findUnique({ where: { name } })) throw new Error("Essa categoria já existe.");
-  await prisma.categories.create({ data: { name, description: text(formData, "description") || null, active: true } }); revalidateProducts();
-}
-export async function updateCategory(formData: FormData) {
-  await assertPatroa(); const id = requiredBigInt(formData, "id", "Categoria"); const name = text(formData, "name");
-  if (!name) throw new Error("Informe o nome da categoria."); if (name.length > 100) throw new Error("O nome da categoria deve ter no máximo 100 caracteres.");
-  if (!(await prisma.categories.findUnique({ where: { id } }))) throw new Error("Categoria não encontrada.");
-  if (await prisma.categories.findFirst({ where: { name, NOT: { id } }, select: { id: true } })) throw new Error("Essa categoria já existe.");
-  await prisma.categories.update({ where: { id }, data: { name, description: text(formData, "description") || null } }); revalidateProducts();
-}
-export async function toggleCategoryStatus(formData: FormData) {
-  await assertPatroa(); const id = requiredBigInt(formData, "id", "Categoria"); const category = await prisma.categories.findUnique({ where: { id }, select: { active: true } });
-  if (!category) throw new Error("Categoria não encontrada."); await prisma.categories.update({ where: { id }, data: { active: !category.active } }); revalidateProducts();
-}
-export async function deleteCategory(formData: FormData) {
-  await assertPatroa(); const id = requiredBigInt(formData, "id", "Categoria"); const category = await prisma.categories.findUnique({ where: { id }, include: { _count: { select: { products: true } } } });
-  if (!category) throw new Error("Categoria não encontrada."); if (category._count.products > 0) throw new Error("Esta categoria possui produtos vinculados. Mova os produtos para outra categoria antes de excluí-la.");
-  await prisma.categories.delete({ where: { id } }); revalidateProducts();
-}
+export async function createCategory(formData: FormData) { await assertPatroa(); const name = text(formData, "name"); if (!name) throw new Error("Informe o nome da categoria."); if (name.length > 100) throw new Error("O nome da categoria deve ter no máximo 100 caracteres."); if (await prisma.categories.findUnique({ where: { name } })) throw new Error("Essa categoria já existe."); await prisma.categories.create({ data: { name, description: text(formData, "description") || null, active: true } }); revalidateProducts(); }
+export async function updateCategory(formData: FormData) { await assertPatroa(); const id = requiredBigInt(formData, "id", "Categoria"); const name = text(formData, "name"); if (!name) throw new Error("Informe o nome da categoria."); if (name.length > 100) throw new Error("O nome da categoria deve ter no máximo 100 caracteres."); if (!(await prisma.categories.findUnique({ where: { id } }))) throw new Error("Categoria não encontrada."); if (await prisma.categories.findFirst({ where: { name, NOT: { id } }, select: { id: true } })) throw new Error("Essa categoria já existe."); await prisma.categories.update({ where: { id }, data: { name, description: text(formData, "description") || null } }); revalidateProducts(); }
+export async function toggleCategoryStatus(formData: FormData) { await assertPatroa(); const id = requiredBigInt(formData, "id", "Categoria"); const category = await prisma.categories.findUnique({ where: { id }, select: { active: true } }); if (!category) throw new Error("Categoria não encontrada."); await prisma.categories.update({ where: { id }, data: { active: !category.active } }); revalidateProducts(); }
+export async function deleteCategory(formData: FormData) { await assertPatroa(); const id = requiredBigInt(formData, "id", "Categoria"); const category = await prisma.categories.findUnique({ where: { id }, include: { _count: { select: { products: true } } } }); if (!category) throw new Error("Categoria não encontrada."); if (category._count.products > 0) throw new Error("Esta categoria possui produtos vinculados. Mova os produtos para outra categoria antes de excluí-la."); await prisma.categories.delete({ where: { id } }); revalidateProducts(); }
 
 export async function createProduct(formData: FormData) {
-  await assertPatroa(); const name = text(formData, "name"); if (!name) throw new Error("Informe o nome do produto.");
-  const colors = parseColors(formData); const legacyStock = nonNegativeInt(formData, "stock_quantity"); const stock = colors.length ? colors.reduce((sum, item) => sum + item.stock, 0) : legacyStock;
-  const categoryId = optionalBigInt(formData, "category_id"); const legacyColor = colors[0]?.color ?? text(formData, "color") || null;
+  await assertPatroa(); const name = text(formData, "name"); if (!name) throw new Error("Informe o nome do produto."); const colors = parseColors(formData); const legacyStock = nonNegativeInt(formData, "stock_quantity"); const stock = colors.length ? colors.reduce((sum, item) => sum + item.stock, 0) : legacyStock; const categoryId = optionalBigInt(formData, "category_id"); const legacyColor = colors[0]?.color ?? (text(formData, "color") || null);
   const product = await prisma.products.create({ data: { name, category_id: categoryId, description: text(formData, "description") || null, sku: text(formData, "sku") || null, size: text(formData, "size") || null, color: legacyColor, cost_price: decimal(formData, "cost_price"), sale_price: decimal(formData, "sale_price"), stock_quantity: stock, minimum_stock: nonNegativeInt(formData, "minimum_stock"), image_url: text(formData, "image_url") || null, active: true } });
-  if (colors.length) await replaceVariants(product.id, colors);
-  if (stock > 0) await prisma.inventory_movements.create({ data: { product_id: product.id, type: "ENTRADA", quantity: stock, previous_stock: 0, current_stock: stock, reason: colors.length ? "Estoque inicial das variações de cor" : "Estoque inicial do produto" } });
-  revalidateProducts();
+  if (colors.length) await replaceVariants(product.id, colors); if (stock > 0) await prisma.inventory_movements.create({ data: { product_id: product.id, type: "ENTRADA", quantity: stock, previous_stock: 0, current_stock: stock, reason: colors.length ? "Estoque inicial das variações de cor" : "Estoque inicial do produto" } }); revalidateProducts();
 }
-
 export async function updateProduct(formData: FormData) {
-  await assertPatroa(); const idValue = text(formData, "id"); if (!idValue) throw new Error("Produto não informado.");
-  let id: bigint; try { id = BigInt(idValue); } catch { throw new Error("Produto inválido."); }
-  const current = await prisma.products.findUnique({ where: { id } }); if (!current) throw new Error("Produto não encontrado.");
-  const name = text(formData, "name"); if (!name) throw new Error("Informe o nome do produto.");
-  const colors = parseColors(formData); const legacyStock = nonNegativeInt(formData, "stock_quantity"); const stock = colors.length ? colors.reduce((sum, item) => sum + item.stock, 0) : legacyStock;
-  const categoryId = optionalBigInt(formData, "category_id"); const newImageUrl = text(formData, "image_url") || null; const legacyColor = colors[0]?.color ?? text(formData, "color") || null;
-  await prisma.$transaction(async (tx) => {
-    await tx.products.update({ where: { id }, data: { name, category_id: categoryId, description: text(formData, "description") || null, sku: text(formData, "sku") || null, size: text(formData, "size") || null, color: legacyColor, cost_price: decimal(formData, "cost_price"), sale_price: decimal(formData, "sale_price"), stock_quantity: stock, minimum_stock: nonNegativeInt(formData, "minimum_stock"), image_url: newImageUrl, updated_at: new Date() } });
-    await tx.$executeRaw`DELETE FROM product_variants WHERE product_id = ${id}`;
-    for (const variant of colors) await tx.$executeRaw`INSERT INTO product_variants (product_id, color, stock_quantity, active) VALUES (${id}, ${variant.color}, ${variant.stock}, ${variant.stock > 0})`;
-    if (stock !== current.stock_quantity) await tx.inventory_movements.create({ data: { product_id: id, type: "AJUSTE", quantity: Math.abs(stock - current.stock_quantity), previous_stock: current.stock_quantity, current_stock: stock, reason: colors.length ? "Ajuste de estoque pelas variações de cor" : "Ajuste de estoque pelo dashboard da patroa" } });
-  });
+  await assertPatroa(); const idValue = text(formData, "id"); if (!idValue) throw new Error("Produto não informado."); let id: bigint; try { id = BigInt(idValue); } catch { throw new Error("Produto inválido."); } const current = await prisma.products.findUnique({ where: { id } }); if (!current) throw new Error("Produto não encontrado."); const name = text(formData, "name"); if (!name) throw new Error("Informe o nome do produto.");
+  const colors = parseColors(formData); const legacyStock = nonNegativeInt(formData, "stock_quantity"); const stock = colors.length ? colors.reduce((sum, item) => sum + item.stock, 0) : legacyStock; const categoryId = optionalBigInt(formData, "category_id"); const newImageUrl = text(formData, "image_url") || null; const legacyColor = colors[0]?.color ?? (text(formData, "color") || null);
+  await prisma.$transaction(async (tx) => { await tx.products.update({ where: { id }, data: { name, category_id: categoryId, description: text(formData, "description") || null, sku: text(formData, "sku") || null, size: text(formData, "size") || null, color: legacyColor, cost_price: decimal(formData, "cost_price"), sale_price: decimal(formData, "sale_price"), stock_quantity: stock, minimum_stock: nonNegativeInt(formData, "minimum_stock"), image_url: newImageUrl, updated_at: new Date() } }); await tx.$executeRaw`DELETE FROM product_variants WHERE product_id = ${id}`; for (const variant of colors) await tx.$executeRaw`INSERT INTO product_variants (product_id, color, stock_quantity, active) VALUES (${id}, ${variant.color}, ${variant.stock}, ${variant.stock > 0})`; if (stock !== current.stock_quantity) await tx.inventory_movements.create({ data: { product_id: id, type: "AJUSTE", quantity: Math.abs(stock - current.stock_quantity), previous_stock: current.stock_quantity, current_stock: stock, reason: colors.length ? "Ajuste de estoque pelas variações de cor" : "Ajuste de estoque pelo dashboard da patroa" } }); });
   if (current.image_url && current.image_url !== newImageUrl) await destroyCloudinaryImage(current.image_url); revalidateProducts();
 }
-
-export async function deleteProduct(formData: FormData) {
-  await assertPatroa(); const idValue = text(formData, "id"); if (!idValue) throw new Error("Produto não informado.");
-  let id: bigint; try { id = BigInt(idValue); } catch { throw new Error("Produto inválido."); }
-  const product = await prisma.products.findUnique({ where: { id }, include: { sale_items: { select: { id: true }, take: 1 }, offer_items: { select: { id: true }, take: 1 } } });
-  if (!product) throw new Error("Produto não encontrado."); if (product.sale_items.length > 0 || product.offer_items.length > 0) throw new Error("Este produto já possui vendas ou ofertas vinculadas. Desative o produto em vez de excluí-lo.");
-  await prisma.products.delete({ where: { id } }); await destroyCloudinaryImage(product.image_url); revalidateProducts();
-}
-export async function toggleProductStatus(formData: FormData) {
-  await assertPatroa(); const idValue = text(formData, "id"); if (!idValue) throw new Error("Produto não informado.");
-  let id: bigint; try { id = BigInt(idValue); } catch { throw new Error("Produto inválido."); }
-  const product = await prisma.products.findUnique({ where: { id }, select: { active: true } }); if (!product) throw new Error("Produto não encontrado.");
-  await prisma.products.update({ where: { id }, data: { active: !product.active, updated_at: new Date() } }); revalidateProducts();
-}
+export async function deleteProduct(formData: FormData) { await assertPatroa(); const idValue = text(formData, "id"); if (!idValue) throw new Error("Produto não informado."); let id: bigint; try { id = BigInt(idValue); } catch { throw new Error("Produto inválido."); } const product = await prisma.products.findUnique({ where: { id }, include: { sale_items: { select: { id: true }, take: 1 }, offer_items: { select: { id: true }, take: 1 } } }); if (!product) throw new Error("Produto não encontrado."); if (product.sale_items.length > 0 || product.offer_items.length > 0) throw new Error("Este produto já possui vendas ou ofertas vinculadas. Desative o produto em vez de excluí-lo."); await prisma.products.delete({ where: { id } }); await destroyCloudinaryImage(product.image_url); revalidateProducts(); }
+export async function toggleProductStatus(formData: FormData) { await assertPatroa(); const idValue = text(formData, "id"); if (!idValue) throw new Error("Produto não informado."); let id: bigint; try { id = BigInt(idValue); } catch { throw new Error("Produto inválido."); } const product = await prisma.products.findUnique({ where: { id }, select: { active: true } }); if (!product) throw new Error("Produto não encontrado."); await prisma.products.update({ where: { id }, data: { active: !product.active, updated_at: new Date() } }); revalidateProducts(); }
 function publicIdFromCloudinaryUrl(url: string) { try { const parsed = new URL(url); const marker = "/image/upload/"; const markerIndex = parsed.pathname.indexOf(marker); if (markerIndex === -1) return null; let path = parsed.pathname.slice(markerIndex + marker.length); const segments = path.split("/").filter(Boolean); if (segments[0]?.startsWith("v") && /^v\d+$/.test(segments[0])) segments.shift(); if (!segments.length) return null; const last = segments.length - 1; segments[last] = segments[last].replace(/\.[^/.]+$/, ""); return segments.join("/"); } catch { return null; } }
 async function destroyCloudinaryImage(url: string | null) { if (!url || !url.includes("res.cloudinary.com/")) return; const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME; const apiKey = process.env.CLOUDINARY_API_KEY; const apiSecret = process.env.CLOUDINARY_API_SECRET; const publicId = publicIdFromCloudinaryUrl(url); if (!cloudName || !apiKey || !apiSecret || !publicId) return; const timestamp = Math.floor(Date.now() / 1000).toString(); const serialized = `public_id=${publicId}&timestamp=${timestamp}`; const signature = createHash("sha1").update(`${serialized}${apiSecret}`).digest("hex"); const body = new URLSearchParams({ public_id: publicId, api_key: apiKey, timestamp, signature }); await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body }); }
