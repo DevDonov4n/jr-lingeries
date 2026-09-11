@@ -3,79 +3,15 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCategory, deleteCategory, toggleCategoryStatus, updateCategory } from "../actions";
+import PatroaHeader from "@/components/PatroaHeader/PatroaHeader";
 import styles from "./page.module.css";
 
 type Category = { id: string; name: string; description: string; active: boolean; productCount: number };
-
 export default function CategoriasClient({ categories: initialCategories }: { categories: Category[] }) {
-  const router = useRouter();
-  const [categories, setCategories] = useState(initialCategories);
-  const [modal, setModal] = useState<"create" | "edit" | null>(null);
-  const [editing, setEditing] = useState<Category | null>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-
-  function openCreate() {
-    setEditing(null); setName(""); setDescription(""); setMessage(""); setModal("create");
-  }
-
-  function openEdit(category: Category) {
-    setEditing(category); setName(category.name); setDescription(category.description); setMessage(""); setModal("edit");
-  }
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setSaving(true); setMessage("");
-    try {
-      const data = new FormData();
-      data.set("name", name); data.set("description", description);
-      if (editing) data.set("id", editing.id);
-      if (modal === "create") await createCategory(data); else await updateCategory(data);
-      setModal(null); setMessage(editing ? "Categoria atualizada com sucesso." : "Categoria criada com sucesso."); router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar a categoria."); }
-    finally { setSaving(false); }
-  }
-
-  async function toggle(category: Category) {
-    try {
-      const data = new FormData(); data.set("id", category.id); await toggleCategoryStatus(data);
-      setCategories((current) => current.map((item) => item.id === category.id ? { ...item, active: !item.active } : item));
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível alterar o status."); }
-  }
-
-  async function remove(category: Category) {
-    if (category.productCount > 0) { setMessage(`A categoria "${category.name}" possui ${category.productCount} produto(s). Remova ou mova os produtos antes de excluí-la.`); return; }
-    if (!window.confirm(`Excluir a categoria "${category.name}"?`)) return;
-    try {
-      const data = new FormData(); data.set("id", category.id); await deleteCategory(data);
-      setCategories((current) => current.filter((item) => item.id !== category.id)); setMessage("Categoria excluída com sucesso.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível excluir a categoria."); }
-  }
-
-  return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div><span className={styles.logo}>JR Lingeries</span><h1>Categorias</h1><p>Organize os produtos da loja por categorias.</p></div>
-        <nav className={styles.headerActions}><a href="/patroa">Início</a><a href="/patroa/estoque">Estoque</a><a href="/patroa/ofertas">Ofertas</a><button onClick={openCreate}>+ Nova categoria</button></nav>
-      </header>
-
-      {message && <div className={styles.message}>{message}</div>}
-
-      <section className={styles.summary}><strong>{categories.length}</strong><span>categorias cadastradas</span><span>•</span><strong>{categories.reduce((sum, category) => sum + category.productCount, 0)}</strong><span>produtos vinculados</span></section>
-
-      <section className={styles.list}>
-        {categories.length === 0 ? <div className={styles.empty}>Nenhuma categoria cadastrada.</div> : categories.map((category) => (
-          <article className={styles.category} key={category.id}>
-            <div className={styles.categoryInfo}><div className={styles.categoryIcon}>C</div><div><h2>{category.name}</h2><p>{category.description || "Sem descrição"}</p></div></div>
-            <div className={styles.categoryCount}><strong>{category.productCount}</strong><span>{category.productCount === 1 ? "item" : "itens"}</span></div>
-            <span className={category.active ? styles.active : styles.inactive}>{category.active ? "Ativa" : "Inativa"}</span>
-            <div className={styles.actions}><button onClick={() => openEdit(category)}>Editar</button><button onClick={() => void toggle(category)}>{category.active ? "Desativar" : "Ativar"}</button><button className={styles.delete} onClick={() => void remove(category)}>Excluir</button></div>
-          </article>
-        ))}
-      </section>
-
-      {modal && <div className={styles.overlay}><div className={styles.modal} role="dialog" aria-modal="true"><div className={styles.modalHeader}><div><span className={styles.eyebrow}>Categorias</span><h2>{modal === "create" ? "Nova categoria" : "Editar categoria"}</h2></div><button className={styles.close} onClick={() => !saving && setModal(null)} disabled={saving}>×</button></div><form onSubmit={submit} className={styles.form}><label>Nome<input value={name} onChange={(event) => setName(event.target.value)} maxLength={100} placeholder="Ex.: Sutiãs" required autoFocus /></label><label>Descrição<input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={255} placeholder="Descrição opcional" /></label><div className={styles.modalActions}><button type="button" onClick={() => setModal(null)} disabled={saving}>Cancelar</button><button className={styles.primary} type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</button></div></form></div></div>}
-    </main>
-  );
+  const router = useRouter(); const [categories, setCategories] = useState(initialCategories); const [modal, setModal] = useState<"create" | "edit" | null>(null); const [editing, setEditing] = useState<Category | null>(null); const [name, setName] = useState(""); const [description, setDescription] = useState(""); const [saving, setSaving] = useState(false); const [message, setMessage] = useState("");
+  function openCreate(){setEditing(null);setName("");setDescription("");setMessage("");setModal("create")}; function openEdit(c:Category){setEditing(c);setName(c.name);setDescription(c.description);setMessage("");setModal("edit")}
+  async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();setSaving(true);setMessage("");try{const data=new FormData();data.set("name",name);data.set("description",description);if(editing)data.set("id",editing.id);if(modal==="create")await createCategory(data);else await updateCategory(data);setModal(null);setMessage(editing?"Categoria atualizada com sucesso.":"Categoria criada com sucesso.");router.refresh()}catch(error){setMessage(error instanceof Error?error.message:"Não foi possível salvar a categoria.")}finally{setSaving(false)}}
+  async function toggle(category:Category){try{const data=new FormData();data.set("id",category.id);await toggleCategoryStatus(data);setCategories(current=>current.map(item=>item.id===category.id?{...item,active:!item.active}:item))}catch(error){setMessage(error instanceof Error?error.message:"Não foi possível alterar o status.")}}
+  async function remove(category:Category){if(category.productCount>0){setMessage(`A categoria "${category.name}" possui ${category.productCount} produto(s). Remova ou mova os produtos antes de excluí-la.`);return}if(!window.confirm(`Excluir a categoria "${category.name}"?`))return;try{const data=new FormData();data.set("id",category.id);await deleteCategory(data);setCategories(current=>current.filter(item=>item.id!==category.id));setMessage("Categoria excluída com sucesso.")}catch(error){setMessage(error instanceof Error?error.message:"Não foi possível excluir a categoria.")}}
+  return <main className={styles.page}><PatroaHeader/><header className={styles.header}><div><span className={styles.logo}>JR Lingeries</span><h1>Categorias</h1><p>Organize os produtos da loja por categorias.</p></div><div className={styles.headerActions}><button onClick={openCreate}>+ Nova categoria</button></div></header>{message&&<div className={styles.message}>{message}</div>}<section className={styles.summary}><strong>{categories.length}</strong><span>categorias cadastradas</span><span>•</span><strong>{categories.reduce((sum,category)=>sum+category.productCount,0)}</strong><span>produtos vinculados</span></section><section className={styles.list}>{categories.length===0?<div className={styles.empty}>Nenhuma categoria cadastrada.</div>:categories.map(category=><article className={styles.category} key={category.id}><div className={styles.categoryInfo}><div className={styles.categoryIcon}>C</div><div><h2>{category.name}</h2><p>{category.description||"Sem descrição"}</p></div></div><div className={styles.categoryCount}><strong>{category.productCount}</strong><span>{category.productCount===1?"item":"itens"}</span></div><span className={category.active?styles.active:styles.inactive}>{category.active?"Ativa":"Inativa"}</span><div className={styles.actions}><button onClick={()=>openEdit(category)}>Editar</button><button onClick={()=>void toggle(category)}>{category.active?"Desativar":"Ativar"}</button><button className={styles.delete} onClick={()=>void remove(category)}>Excluir</button></div></article>)}</section>{modal&&<div className={styles.overlay}><div className={styles.modal} role="dialog" aria-modal="true"><div className={styles.modalHeader}><div><span className={styles.eyebrow}>Categorias</span><h2>{modal==="create"?"Nova categoria":"Editar categoria"}</h2></div><button className={styles.close} onClick={()=>!saving&&setModal(null)} disabled={saving}>×</button></div><form onSubmit={submit} className={styles.form}><label>Nome<input value={name} onChange={event=>setName(event.target.value)} maxLength={100} placeholder="Ex.: Sutiãs" required autoFocus/></label><label>Descrição<input value={description} onChange={event=>setDescription(event.target.value)} maxLength={255} placeholder="Descrição opcional"/></label><div className={styles.modalActions}><button type="button" onClick={()=>setModal(null)} disabled={saving}>Cancelar</button><button className={styles.primary} type="submit" disabled={saving}>{saving?"Salvando...":"Salvar"}</button></div></form></div></div>}</main>;
 }
