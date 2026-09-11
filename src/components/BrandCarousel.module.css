@@ -1,0 +1,142 @@
+.section {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px 80px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background: #e8cfd4;
+}
+
+.header > div {
+  text-align: center;
+}
+
+.eyebrow {
+  display: block;
+  color: #c87585;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.header h2 {
+  margin: 0;
+  color: #4a3e3d;
+  font-family: "Manrope", sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.carousel {
+  width: 100%;
+  overflow: hidden;
+  padding: 8px 0;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 5%, black 95%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 5%, black 95%, transparent 100%);
+}
+
+.viewport {
+  width: 100%;
+  overflow: hidden;
+}
+
+.trackGroup {
+  width: max-content;
+  display: flex;
+  animation: brandScroll 18s linear infinite;
+  will-change: transform;
+}
+
+.paused .trackGroup {
+  animation-play-state: paused;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-right: 18px;
+  flex-shrink: 0;
+}
+
+.brand {
+  width: 180px;
+  height: 100px;
+  padding: 14px 24px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #f1e3e6;
+  border-radius: 18px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: transform .25s, box-shadow .25s, border-color .25s;
+}
+
+.brand:hover {
+  transform: translateY(-4px);
+  border-color: #ffb6c1;
+  box-shadow: 0 10px 25px rgba(74, 62, 61, .1);
+}
+
+.logo {
+  width: 100%;
+  height: 100%;
+  max-width: 135px;
+  max-height: 65px;
+  object-fit: contain;
+}
+
+@keyframes brandScroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 600px) {
+  .section {
+    padding: 0 18px 60px;
+  }
+
+  .header {
+    gap: 10px;
+  }
+
+  .header h2 {
+    font-size: 22px;
+  }
+
+  .brand {
+    width: 145px;
+    height: 82px;
+    padding: 10px 18px;
+  }
+
+  .logo {
+    max-width: 110px;
+    max-height: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trackGroup {
+    animation: none;
+  }
+}
