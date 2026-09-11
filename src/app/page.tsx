@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getProducts } from "@/lib/products";
+import BrandCarousel from "@/components/BrandCarousel";
 import styles from "./page.module.css";
 
 const categories = [
@@ -42,6 +43,8 @@ export default async function Home() {
           </div>
         )}
       </section>
+
+      <BrandCarousel />
 
       <section className={styles.benefits}>
         <div><span>♡</span><div><strong>Compra segura</strong><small>Seus dados protegidos</small></div></div>
