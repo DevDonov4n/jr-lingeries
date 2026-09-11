@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { Prisma } from "../../../../generated/prisma/client";
 import { getSession } from "@/lib/auth";
 import EstoqueClient from "./EstoqueClient";
 
@@ -13,7 +14,7 @@ export default async function EstoquePage() {
   ]);
 
   const variants = products.length
-    ? await prisma.$queryRaw<Array<{ product_id: bigint; color: string; stock_quantity: number; active: boolean }>>`SELECT product_id, color, stock_quantity, active FROM product_variants WHERE product_id IN (${prisma.join(products.map((product) => product.id))}) ORDER BY color ASC`
+    ? await prisma.$queryRaw<Array<{ product_id: bigint; color: string; stock_quantity: number; active: boolean }>>`SELECT product_id, color, stock_quantity, active FROM product_variants WHERE product_id IN (${Prisma.join(products.map((product) => product.id))}) ORDER BY color ASC`
     : [];
   const variantMap = new Map<string, { color: string; stock: number; active: boolean }[]>();
   for (const variant of variants) {
