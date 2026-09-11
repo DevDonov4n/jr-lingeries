@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=League+Script&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
 
 :root {
   --rosa-principal: #ffb6c1;
@@ -30,6 +31,11 @@ h1 {
   font-family: "League Script", cursive;
   font-weight: 400;
   font-style: normal;
+}
+
+h2 {
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
 }
 
 button,
