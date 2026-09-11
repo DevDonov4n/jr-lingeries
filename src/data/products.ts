@@ -2,6 +2,7 @@ import type { StaticImageData } from "next/image";
 
 export interface ProductColor {
   color: string;
+  colorHex: string;
   stock: number;
   active: boolean;
 }
