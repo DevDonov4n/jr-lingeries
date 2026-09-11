@@ -21,6 +21,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (!product) notFound();
 
+  const hasDiscount = !!product.originalPrice && product.originalPrice > product.price;
+
   return (
     <main className={styles.main}>
       <Link href="/produtos" className={styles.back}>
@@ -43,9 +45,28 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <div className={styles.info}>
           <p className={styles.brand}>JR Lingeries</p>
           <h1>{product.name}</h1>
-          <p className={styles.price}>
-            R$ {product.price.toFixed(2).replace(".", ",")}
-          </p>
+
+          {hasDiscount ? (
+            <div className={styles.priceBox}>
+              <span className={styles.originalPrice}>
+                R$ {product.originalPrice!.toFixed(2).replace(".", ",")}
+              </span>
+              <p className={styles.price}>
+                R$ {product.price.toFixed(2).replace(".", ",")}
+              </p>
+              <span className={styles.discountBadge}>
+                {Math.round(product.discountPercent ?? 0)}% OFF
+              </span>
+              {product.offerName && (
+                <span className={styles.offerName}>{product.offerName}</span>
+              )}
+            </div>
+          ) : (
+            <p className={styles.price}>
+              R$ {product.price.toFixed(2).replace(".", ",")}
+            </p>
+          )}
+
           <p className={styles.description}>
             {product.description ??
               "Uma peça pensada para proporcionar conforto, delicadeza e beleza em todos os momentos."}
