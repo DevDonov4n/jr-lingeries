@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=League+Script&display=swap');
+
 :root {
   --rosa-principal: #ffb6c1;
   --rosa-fundo: #fff0f5;
@@ -22,6 +24,12 @@ body {
   background-color: var(--rosa-fundo);
   color: var(--texto);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+h1 {
+  font-family: "League Script", cursive;
+  font-weight: 400;
+  font-style: normal;
 }
 
 button,
