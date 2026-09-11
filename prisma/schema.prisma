@@ -35,7 +35,6 @@ model clients {
   updated_at   DateTime? @default(now()) @db.Timestamp(0)
   users        users?    @relation(fields: [user_id], references: [id], map: "fk_clients_user")
   sales        sales[]
-
   @@index([user_id], map: "fk_clients_user")
   @@index([name], map: "idx_clients_name")
 }
@@ -52,7 +51,6 @@ model financial_transactions {
   notes            String?                                @db.Text
   created_at       DateTime?                              @default(now()) @db.Timestamp(0)
   sales            sales?                                 @relation(fields: [sale_id], references: [id], map: "fk_financial_sale")
-
   @@index([sale_id], map: "fk_financial_sale")
   @@index([transaction_date], map: "idx_financial_date")
 }
@@ -69,7 +67,6 @@ model inventory_movements {
   created_at     DateTime?                @default(now()) @db.Timestamp(0)
   products       products                 @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "fk_inventory_product")
   sales          sales?                   @relation(fields: [sale_id], references: [id], map: "fk_inventory_sale")
-
   @@index([sale_id], map: "fk_inventory_sale")
   @@index([product_id], map: "idx_inventory_product")
 }
@@ -81,7 +78,6 @@ model offer_items {
   created_at DateTime? @default(now()) @db.Timestamp(0)
   offers     offers    @relation(fields: [offer_id], references: [id], onDelete: Cascade, map: "fk_offer_items_offer")
   products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "fk_offer_items_product")
-
   @@unique([offer_id, product_id], map: "unique_offer_product")
   @@index([product_id], map: "fk_offer_items_product")
 }
@@ -96,9 +92,8 @@ model offers {
   ends_at        DateTime             @db.DateTime(0)
   active         Boolean              @default(true)
   created_at     DateTime?            @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?             @default(now()) @db.Timestamp(0)
   offer_items    offer_items[]
-
   @@index([starts_at, ends_at], map: "idx_offers_dates")
 }
 
@@ -122,10 +117,24 @@ model products {
   offer_items         offer_items[]
   categories          categories?           @relation(fields: [category_id], references: [id], map: "fk_products_category")
   sale_items          sale_items[]
-
+  variants            product_variants[]
   @@index([category_id], map: "fk_products_category")
   @@index([name], map: "idx_products_name")
   @@index([stock_quantity], map: "idx_products_stock")
+}
+
+model product_variants {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id     BigInt   @db.UnsignedBigInt
+  color          String   @db.VarChar(50)
+  stock_quantity Int      @default(0)
+  active         Boolean  @default(true)
+  created_at     DateTime? @default(now()) @db.Timestamp(0)
+  updated_at     DateTime? @default(now()) @db.Timestamp(0)
+  products       products @relation(fields: [product_id], references: [id], onDelete: Cascade, map: "fk_variant_product")
+  @@unique([product_id, color], map: "unique_product_variant_color")
+  @@index([product_id], map: "idx_variant_product")
+  @@index([stock_quantity], map: "idx_variant_stock")
 }
 
 model sale_items {
@@ -138,7 +147,6 @@ model sale_items {
   total      Decimal  @db.Decimal(10, 2)
   products   products @relation(fields: [product_id], references: [id], map: "fk_sale_items_product")
   sales      sales    @relation(fields: [sale_id], references: [id], onDelete: Cascade, map: "fk_sale_items_sale")
-
   @@index([product_id], map: "fk_sale_items_product")
   @@index([sale_id], map: "fk_sale_items_sale")
 }
@@ -160,7 +168,6 @@ model sales {
   inventory_movements    inventory_movements[]
   sale_items             sale_items[]
   clients                clients?                 @relation(fields: [client_id], references: [id], map: "fk_sales_client")
-
   @@index([client_id], map: "idx_sales_client")
   @@index([sale_date], map: "idx_sales_date")
   @@index([payment_status], map: "idx_sales_payment_status")
