@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { FaCartShopping } from "react-icons/fa6";
 import styles from "./Header.module.css";
 import logo from "@/assets/logo.png";
@@ -9,7 +10,35 @@ import { useCart } from "@/context/CartContext";
 
 export default function Header() {
   const { cart, isHydrated } = useCart();
+  const [userName, setUserName] = useState<string | null>(null);
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (active) {
+          setUserName(data.authenticated ? data.name : null);
+        }
+      } catch {
+        if (active) setUserName(null);
+      }
+    }
+
+    void loadSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const accountLabel = userName ?? "Entrar";
+  const accountHref = userName ? "/cliente" : "/login";
 
   return (
     <header className={styles.header}>
@@ -26,8 +55,8 @@ export default function Header() {
         </nav>
 
         <div className={styles.actions}>
-          <Link href="/login" className={styles.login}>
-            Entrar
+          <Link href={accountHref} className={styles.login}>
+            {accountLabel}
           </Link>
 
           <Link href="/carrinho" className={styles.cart} aria-label={`Carrinho com ${cartCount} ${cartCount === 1 ? "item" : "itens"}`}>
@@ -48,7 +77,7 @@ export default function Header() {
           <Link href="/produtos">Produtos</Link>
           <Link href="/sobre">Sobre Nós</Link>
           <Link href="/contato">Contato</Link>
-          <Link href="/login" className={styles.mobileLogin}>Entrar</Link>
+          <Link href={accountHref} className={styles.mobileLogin}>{accountLabel}</Link>
           <Link href="/carrinho" className={styles.mobileCart}>
             <FaCartShopping aria-hidden="true" />
             <span>Carrinho ({isHydrated ? cartCount : 0})</span>
