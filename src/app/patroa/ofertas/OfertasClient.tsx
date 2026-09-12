@@ -4,10 +4,360 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import PatroaHeader from "@/components/PatroaHeader/PatroaHeader";
 import styles from "./page.module.css";
-import { createOffer, deleteOffer, toggleOfferStatus, updateOffer } from "./actions";
+import {
+  createOffer,
+  deleteOffer,
+  toggleOfferStatus,
+  updateOffer,
+} from "./actions";
 
 type Product = { id: string; name: string; price: number };
-type Offer = { id: string; name: string; description: string; discountType: "PERCENTAGE" | "FIXED"; discountValue: number; startsAt: string; endsAt: string; active: boolean; productIds: string[]; productNames: string[] };
-type FormState = { name: string; description: string; discountType: "PERCENTAGE" | "FIXED"; discountValue: string; startsAt: string; endsAt: string; productIds: string[] };
-const empty = (): FormState => ({ name:"",description:"",discountType:"PERCENTAGE",discountValue:"",startsAt:"",endsAt:"",productIds:[] }); const money=(n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); const dateLabel=(v:string)=>new Date(v).toLocaleDateString("pt-BR");
-export default function OfertasClient({initialOffers,products}:{initialOffers:Offer[];products:Product[]}){const router=useRouter();const[offers,setOffers]=useState(initialOffers);const[form,setForm]=useState<FormState>(empty);const[editingId,setEditingId]=useState<string|null>(null);const[open,setOpen]=useState(false);const[saving,setSaving]=useState(false);const[message,setMessage]=useState("");function edit(o:Offer){setEditingId(o.id);setForm({name:o.name,description:o.description,discountType:o.discountType,discountValue:String(o.discountValue),startsAt:o.startsAt.slice(0,16),endsAt:o.endsAt.slice(0,16),productIds:o.productIds});setMessage("");setOpen(true)}function create(){setEditingId(null);setForm(empty());setMessage("");setOpen(true)}function toggleProduct(id:string){setForm(f=>({...f,productIds:f.productIds.includes(id)?f.productIds.filter(p=>p!==id):[...f.productIds,id]}))}async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setSaving(true);setMessage("");try{const data=new FormData(e.currentTarget);data.set("product_ids",form.productIds.join(","));if(editingId){data.set("id",editingId);await updateOffer(data)}else await createOffer(data);router.refresh();setOpen(false);setMessage(editingId?"Oferta atualizada com sucesso.":"Oferta criada com sucesso.")}catch(err){setMessage(err instanceof Error?err.message:"Não foi possível salvar a oferta.")}finally{setSaving(false)}}async function toggle(o:Offer){setSaving(true);try{const data=new FormData();data.set("id",o.id);await toggleOfferStatus(data);setOffers(list=>list.map(item=>item.id===o.id?{...item,active:!item.active}:item))}catch(err){setMessage(err instanceof Error?err.message:"Não foi possível alterar a oferta.")}finally{setSaving(false)}}async function remove(o:Offer){if(!window.confirm(`Excluir a oferta “${o.name}”?`))return;setSaving(true);try{const data=new FormData();data.set("id",o.id);await deleteOffer(data);setOffers(list=>list.filter(item=>item.id!==o.id));setMessage("Oferta excluída.")}catch(err){setMessage(err instanceof Error?err.message:"Não foi possível excluir a oferta.")}finally{setSaving(false)}}return <main className={styles.page}><PatroaHeader/><header className={styles.header}><div><span className={styles.logo}>JR Lingeries</span><h1>Ofertas</h1><p>Crie promoções e vincule os produtos participantes.</p></div><div className={styles.headerActions}><button onClick={create}>+ Nova oferta</button></div></header>{message&&<div className={styles.message}>{message}</div>}<section className={styles.list}>{offers.length===0?<div className={styles.empty}>Nenhuma oferta cadastrada.</div>:offers.map(o=><article className={styles.offer} key={o.id}><div className={styles.offerTop}><div><strong>{o.name}</strong><span>{o.description||"Sem descrição"}</span></div><b className={o.active?styles.active:styles.inactive}>{o.active?"Ativa":"Inativa"}</b></div><div className={styles.details}><span>Desconto: <strong>{o.discountType==="PERCENTAGE"?`${o.discountValue}%`:money(o.discountValue)}</strong></span><span>Período: {dateLabel(o.startsAt)} até {dateLabel(o.endsAt)}</span><span>Produtos: {o.productNames.join(", ")||"Nenhum"}</span></div><div className={styles.actions}><button onClick={()=>edit(o)} disabled={saving}>Editar</button><button onClick={()=>void toggle(o)} disabled={saving}>{o.active?"Desativar":"Ativar"}</button><button className={styles.delete} onClick={()=>void remove(o)} disabled={saving}>Excluir</button></div></article>)}</section>{open&&<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget&&!saving)setOpen(false)}}><div className={styles.modal}><div className={styles.modalHeader}><div><span className={styles.eyebrow}>Promoção</span><h2>{editingId?"Editar oferta":"Nova oferta"}</h2></div><button className={styles.close} onClick={()=>!saving&&setOpen(false)}>×</button></div><form onSubmit={submit} className={styles.form}><input name="name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome da oferta" required/><textarea name="description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Descrição" rows={3}/><div className={styles.grid}><select name="discount_type" value={form.discountType} onChange={e=>setForm({...form,discountType:e.target.value as FormState["discountType"]})}><option value="PERCENTAGE">Percentual (%)</option><option value="FIXED">Valor fixo (R$)</option></select><input name="discount_value" type="number" min="0.01" step="0.01" value={form.discountValue} onChange={e=>setForm({...form,discountValue:e.target.value})} placeholder="Desconto" required/></div><div className={styles.grid}><label>Início<input name="starts_at" type="datetime-local" value={form.startsAt} onChange={e=>setForm({...form,startsAt:e.target.value})} required/></label><label>Fim<input name="ends_at" type="datetime-local" value={form.endsAt} onChange={e=>setForm({...form,endsAt:e.target.value})} required/></label></div><fieldset className={styles.productFieldset}><legend className={styles.productLegend}>Produtos participantes</legend><div className={styles.productChoices}>{products.length===0?<span>Nenhum produto ativo disponível.</span>:products.map(p=><label key={p.id} className={form.productIds.includes(p.id)?styles.selected:""}><input type="checkbox" checked={form.productIds.includes(p.id)} onChange={()=>toggleProduct(p.id)}/><span>{p.name}</span><small>{money(p.price)}</small></label>)}</div></fieldset><div className={styles.modalActions}><button type="button" onClick={()=>setOpen(false)} disabled={saving}>Cancelar</button><button className={styles.primary} type="submit" disabled={saving}>{saving?"Salvando...":editingId?"Salvar alterações":"Criar oferta"}</button></div></form></div></div>}</main>}
+type Offer = {
+  id: string;
+  name: string;
+  description: string;
+  discountType: "PERCENTAGE" | "FIXED";
+  discountValue: number;
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
+  productIds: string[];
+  productNames: string[];
+};
+type FormState = {
+  name: string;
+  description: string;
+  discountType: "PERCENTAGE" | "FIXED";
+  discountValue: string;
+  startsAt: string;
+  endsAt: string;
+  productIds: string[];
+};
+const empty = (): FormState => ({
+  name: "",
+  description: "",
+  discountType: "PERCENTAGE",
+  discountValue: "",
+  startsAt: "",
+  endsAt: "",
+  productIds: [],
+});
+const money = (n: number) =>
+  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const dateLabel = (v: string) => new Date(v).toLocaleDateString("pt-BR");
+export default function OfertasClient({
+  initialOffers,
+  products,
+}: {
+  initialOffers: Offer[];
+  products: Product[];
+}) {
+  const router = useRouter();
+  const [offers, setOffers] = useState(initialOffers);
+  const [form, setForm] = useState<FormState>(empty);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  function edit(o: Offer) {
+    setEditingId(o.id);
+    setForm({
+      name: o.name,
+      description: o.description,
+      discountType: o.discountType,
+      discountValue: String(o.discountValue),
+      startsAt: o.startsAt.slice(0, 16),
+      endsAt: o.endsAt.slice(0, 16),
+      productIds: o.productIds,
+    });
+    setMessage("");
+    setOpen(true);
+  }
+  function create() {
+    setEditingId(null);
+    setForm(empty());
+    setMessage("");
+    setOpen(true);
+  }
+  function toggleProduct(id: string) {
+    setForm((f) => ({
+      ...f,
+      productIds: f.productIds.includes(id)
+        ? f.productIds.filter((p) => p !== id)
+        : [...f.productIds, id],
+    }));
+  }
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      const data = new FormData(e.currentTarget);
+      data.set("product_ids", form.productIds.join(","));
+      if (editingId) {
+        data.set("id", editingId);
+        await updateOffer(data);
+      } else await createOffer(data);
+      router.refresh();
+      setOpen(false);
+      setMessage(
+        editingId
+          ? "Oferta atualizada com sucesso."
+          : "Oferta criada com sucesso.",
+      );
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível salvar a oferta.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function toggle(o: Offer) {
+    setSaving(true);
+    try {
+      const data = new FormData();
+      data.set("id", o.id);
+      await toggleOfferStatus(data);
+      setOffers((list) =>
+        list.map((item) =>
+          item.id === o.id ? { ...item, active: !item.active } : item,
+        ),
+      );
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível alterar a oferta.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function remove(o: Offer) {
+    if (!window.confirm(`Excluir a oferta “${o.name}”?`)) return;
+    setSaving(true);
+    try {
+      const data = new FormData();
+      data.set("id", o.id);
+      await deleteOffer(data);
+      setOffers((list) => list.filter((item) => item.id !== o.id));
+      setMessage("Oferta excluída.");
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível excluir a oferta.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <main className={styles.page}>
+      <PatroaHeader />
+      <header className={styles.header}>
+        <div>
+          <span className={styles.logo}>JR Lingeries</span>
+          <h1>Ofertas</h1>
+          <p>Crie promoções e vincule os produtos participantes.</p>
+        </div>
+        <div className={styles.headerActions}>
+          <button onClick={create}>+ Nova oferta</button>
+        </div>
+      </header>
+      {message && <div className={styles.message}>{message}</div>}
+      <section className={styles.list}>
+        {offers.length === 0 ? (
+          <div className={styles.empty}>Nenhuma oferta cadastrada.</div>
+        ) : (
+          offers.map((o) => (
+            <article className={styles.offer} key={o.id}>
+              <div className={styles.offerTop}>
+                <div>
+                  <strong>{o.name}</strong>
+                  <span>{o.description || "Sem descrição"}</span>
+                </div>
+                <b className={o.active ? styles.active : styles.inactive}>
+                  {o.active ? "Ativa" : "Inativa"}
+                </b>
+              </div>
+              <div className={styles.details}>
+                <span>
+                  Desconto:{" "}
+                  <strong>
+                    {o.discountType === "PERCENTAGE"
+                      ? `${o.discountValue}%`
+                      : money(o.discountValue)}
+                  </strong>
+                </span>
+                <span>
+                  Período: {dateLabel(o.startsAt)} até {dateLabel(o.endsAt)}
+                </span>
+                <span>Produtos: {o.productNames.join(", ") || "Nenhum"}</span>
+              </div>
+              <div className={styles.actions}>
+                <button onClick={() => edit(o)} disabled={saving}>
+                  Editar
+                </button>
+                <button onClick={() => void toggle(o)} disabled={saving}>
+                  {o.active ? "Desativar" : "Ativar"}
+                </button>
+                <button
+                  className={styles.delete}
+                  onClick={() => void remove(o)}
+                  disabled={saving}
+                >
+                  Excluir
+                </button>
+              </div>
+            </article>
+          ))
+        )}
+      </section>
+      {open && (
+        <div
+          className={styles.overlay}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !saving) setOpen(false);
+          }}
+        >
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <div>
+                <span className={styles.eyebrow}>Promoção</span>
+                <h2>{editingId ? "Editar oferta" : "Nova oferta"}</h2>
+              </div>
+              <button
+                className={styles.close}
+                onClick={() => !saving && setOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={submit} className={styles.form}>
+              <input
+                name="name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Nome da oferta"
+                required
+              />
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
+                placeholder="Descrição"
+                rows={3}
+              />
+              <div className={styles.grid}>
+                <select
+                  name="discount_type"
+                  value={form.discountType}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      discountType: e.target.value as FormState["discountType"],
+                    })
+                  }
+                >
+                  <option value="PERCENTAGE">Percentual (%)</option>
+                  <option value="FIXED">Valor fixo (R$)</option>
+                </select>
+                <input
+                  name="discount_value"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={form.discountValue}
+                  onChange={(e) =>
+                    setForm({ ...form, discountValue: e.target.value })
+                  }
+                  placeholder="Desconto"
+                  required
+                />
+              </div>
+              <div className={styles.grid}>
+                <label>
+                  Início
+                  <input
+                    name="starts_at"
+                    type="datetime-local"
+                    value={form.startsAt}
+                    onChange={(e) =>
+                      setForm({ ...form, startsAt: e.target.value })
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Fim
+                  <input
+                    name="ends_at"
+                    type="datetime-local"
+                    value={form.endsAt}
+                    onChange={(e) =>
+                      setForm({ ...form, endsAt: e.target.value })
+                    }
+                    required
+                  />
+                </label>
+              </div>
+              <fieldset className={styles.productFieldset}>
+                <legend className={styles.productLegend}>
+                  Produtos participantes
+                </legend>
+                <div className={styles.productChoices}>
+                  {products.length === 0 ? (
+                    <span>Nenhum produto ativo disponível.</span>
+                  ) : (
+                    products.map((p) => (
+                      <label
+                        key={p.id}
+                        className={
+                          form.productIds.includes(p.id) ? styles.selected : ""
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={form.productIds.includes(p.id)}
+                          onChange={() => toggleProduct(p.id)}
+                        />
+                        <span>{p.name}</span>
+                        <small>{money(p.price)}</small>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </fieldset>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className={styles.primary}
+                  type="submit"
+                  disabled={saving}
+                >
+                  {saving
+                    ? "Salvando..."
+                    : editingId
+                      ? "Salvar alterações"
+                      : "Criar oferta"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
