@@ -1,4 +1,5 @@
 import Image from "next/image";
+import BrandCarousel from "@/components/BrandCarousel";
 import styles from "./page.module.css";
 
 export default function SobrePage() {
@@ -24,6 +25,8 @@ export default function SobrePage() {
           />
         </div>
       </section>
+
+      <BrandCarousel />
 
       <section className={styles.story}>
         <div>
