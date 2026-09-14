@@ -2,6 +2,10 @@ import ProductCard from "@/components/ProductCard/ProductCard";
 import { getProducts } from "@/lib/products";
 import styles from "./page.module.css";
 
+// Os produtos vêm do MySQL em tempo de requisição.
+// Evita que o Vercel congele a página com o estado do banco durante o build.
+export const dynamic = "force-dynamic";
+
 export default async function Produtos() {
   const products = await getProducts();
   const grouped = products.reduce<Record<string, typeof products>>(
