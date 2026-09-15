@@ -103,7 +103,21 @@ export async function fetchMorenaPedido(cpf: string, pedido: string) {
     throw new Error(`Não foi possível abrir o catálogo da Morena (HTTP ${response.status}).`);
   }
 
-  const products = extractProductReferences(await response.text());
+  const html = await response.text();
+
+  console.log("[Morena] Status catálogo:", response.status);
+  console.log("[Morena] URL final:", response.url);
+  console.log("[Morena] Tamanho do HTML:", html.length);
+  console.log("[Morena] Contém /tags/:", html.includes("/tags/"));
+  console.log("[Morena] Primeiros 1000 caracteres:", html.slice(0, 1000));
+
+  const products = extractProductReferences(html);
+
+  console.log(
+    "[Morena] Referências encontradas:",
+    products.map((product) => product.sku),
+  );
+
   if (products.length === 0) {
     throw new Error("A consulta foi aceita, mas nenhum produto foi encontrado no catálogo.");
   }
