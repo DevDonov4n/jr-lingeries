@@ -52,15 +52,19 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
   }
 
   let cookie = extractCookies(pageResponse.headers);
-  const body = new URLSearchParams({ CPF: cpf, PEDIDO: pedido, x: "29", y: "14" });
+  const body = new URLSearchParams({ CPF: cpf, PEDIDO: pedido, x: "21", y: "6" });
 
   const response = await fetch(PROCESS_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "User-Agent": "Mozilla/5.0 (compatible; JR-Lingeries/1.0)",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       Referer: PDF_PAGE_URL,
+      Origin: MORENA_BASE_URL,
       ...(cookie ? { Cookie: cookie } : {}),
     },
     body,
