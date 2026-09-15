@@ -5,6 +5,7 @@ const PROCESS_URL = `${MORENA_BASE_URL}/PDF/PROCESSAPDF.ASP`;
 type MorenaSession = {
   cookie: string;
   catalogUrl: string;
+  cadastroId: string | null;
 };
 
 export type MorenaProductReference = {
@@ -78,7 +79,12 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
   const location = response.headers.get("location");
   if (!location) throw new Error("A Morena não retornou o endereço do catálogo.");
 
-  return { cookie, catalogUrl: new URL(location, PROCESS_URL).toString() };
+  const catalogUrl = new URL(location, PROCESS_URL);
+  return {
+    cookie,
+    catalogUrl: catalogUrl.toString(),
+    cadastroId: catalogUrl.searchParams.get("c"),
+  };
 }
 
 export async function fetchMorenaPedido(cpf: string, pedido: string) {
@@ -102,7 +108,12 @@ export async function fetchMorenaPedido(cpf: string, pedido: string) {
     throw new Error("A consulta foi aceita, mas nenhum produto foi encontrado no catálogo.");
   }
 
-  return { pedido, total: products.length, products };
+  return {
+    pedido,
+    cadastroId: session.cadastroId,
+    total: products.length,
+    products,
+  };
 }
 
 function extractProductReferences(html: string): MorenaProductReference[] {
