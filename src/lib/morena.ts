@@ -1,4 +1,5 @@
 const MORENA_BASE_URL = "https://www.morenalingerie.com.br";
+const PDF_PAGE_URL = `${MORENA_BASE_URL}/pdf/`;
 const PROCESS_URL = `${MORENA_BASE_URL}/PDF/PROCESSAPDF.ASP`;
 
 type MorenaSession = {
@@ -12,28 +13,47 @@ export type MorenaProductReference = {
 };
 
 function extractCookies(headers: Headers) {
-  const withGetSetCookie = headers as Headers & {
-    getSetCookie?: () => string[];
-  };
+  const withGetSetCookie = headers as Headers & { getSetCookie?: () => string[] };
   const cookies = withGetSetCookie.getSetCookie?.() ?? [];
-
   if (cookies.length > 0) {
     return cookies.map((value) => value.split(";", 1)[0]).join("; ");
   }
 
   const single = headers.get("set-cookie");
-  return single ? single.split(/,(?=[^;,]+=)/).map((value) => value.split(";", 1)[0]).join("; ") : "";
+  return single
+    ? single.split(/,(?=[^;,]+=)/).map((value) => value.split(";", 1)[0]).join("; ")
+    : "";
+}
+
+function mergeCookies(...cookieHeaders: string[]) {
+  const cookies = new Map<string, string>();
+  for (const header of cookieHeaders) {
+    for (const part of header.split(";")) {
+      const separator = part.indexOf("=");
+      if (separator <= 0) continue;
+      cookies.set(part.slice(0, separator).trim(), part.slice(separator + 1).trim());
+    }
+  }
+  return [...cookies.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
 }
 
 async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSession> {
-  const body = new URLSearchParams({
-    CPF: cpf,
-    PEDIDO: pedido,
-    // PROCESSAPDF.ASP is submitted by an image button on the original page.
-    // These coordinates reproduce the request observed in Chrome DevTools.
-    x: "29",
-    y: "14",
+  // The browser flow starts on /pdf/ and keeps the ASPSESSIONID for the POST
+  // and the following gerapdf.asp request.
+  const pageResponse = await fetch(PDF_PAGE_URL, {
+    headers: {
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (compatible; JR-Lingeries/1.0)",
+    },
+    cache: "no-store",
   });
+
+  if (!pageResponse.ok) {
+    throw new Error(`Não foi possível iniciar a sessão da Morena (HTTP ${pageResponse.status}).`);
+  }
+
+  let cookie = extractCookies(pageResponse.headers);
+  const body = new URLSearchParams({ CPF: cpf, PEDIDO: pedido, x: "29", y: "14" });
 
   const response = await fetch(PROCESS_URL, {
     method: "POST",
@@ -41,11 +61,15 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "User-Agent": "Mozilla/5.0 (compatible; JR-Lingeries/1.0)",
+      Referer: PDF_PAGE_URL,
+      ...(cookie ? { Cookie: cookie } : {}),
     },
     body,
     redirect: "manual",
     cache: "no-store",
   });
+
+  cookie = mergeCookies(cookie, extractCookies(response.headers));
 
   if (response.status !== 302 && response.status !== 303) {
     throw new Error(`A Morena recusou a consulta (HTTP ${response.status}).`);
@@ -54,20 +78,16 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
   const location = response.headers.get("location");
   if (!location) throw new Error("A Morena não retornou o endereço do catálogo.");
 
-  const cookie = extractCookies(response.headers);
-  const catalogUrl = new URL(location, PROCESS_URL).toString();
-
-  return { cookie, catalogUrl };
+  return { cookie, catalogUrl: new URL(location, PROCESS_URL).toString() };
 }
 
 export async function fetchMorenaPedido(cpf: string, pedido: string) {
   const session = await startMorenaSession(cpf, pedido);
-
   const response = await fetch(session.catalogUrl, {
-    method: "GET",
     headers: {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "User-Agent": "Mozilla/5.0 (compatible; JR-Lingeries/1.0)",
+      Referer: PROCESS_URL,
       ...(session.cookie ? { Cookie: session.cookie } : {}),
     },
     cache: "no-store",
@@ -77,18 +97,12 @@ export async function fetchMorenaPedido(cpf: string, pedido: string) {
     throw new Error(`Não foi possível abrir o catálogo da Morena (HTTP ${response.status}).`);
   }
 
-  const html = await response.text();
-  const products = extractProductReferences(html);
-
+  const products = extractProductReferences(await response.text());
   if (products.length === 0) {
     throw new Error("A consulta foi aceita, mas nenhum produto foi encontrado no catálogo.");
   }
 
-  return {
-    pedido,
-    total: products.length,
-    products,
-  };
+  return { pedido, total: products.length, products };
 }
 
 function extractProductReferences(html: string): MorenaProductReference[] {
@@ -101,7 +115,6 @@ function extractProductReferences(html: string): MorenaProductReference[] {
     const sku = match[2];
     if (seen.has(sku)) continue;
     seen.add(sku);
-
     products.push({
       sku,
       imageUrl: new URL(relativeUrl, `${MORENA_BASE_URL}/pdf/`).toString(),
