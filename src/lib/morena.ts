@@ -39,8 +39,6 @@ function mergeCookies(...cookieHeaders: string[]) {
 }
 
 async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSession> {
-  // The browser flow starts on /pdf/ and keeps the ASPSESSIONID for the POST
-  // and the following gerapdf.asp request.
   const pageResponse = await fetch(PDF_PAGE_URL, {
     headers: {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -70,16 +68,28 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
     cache: "no-store",
   });
 
+  const postLocation = response.headers.get("location");
+  const postStatus = response.status;
+  const hadSessionCookie = Boolean(cookie);
+
+  console.log("[Morena] Status POST:", postStatus);
+  console.log("[Morena] Location do POST:", postLocation ?? "(não informado)");
+  console.log("[Morena] Possui cookie de sessão:", hadSessionCookie);
+
   cookie = mergeCookies(cookie, extractCookies(response.headers));
 
   if (response.status !== 302 && response.status !== 303) {
     throw new Error(`A Morena recusou a consulta (HTTP ${response.status}).`);
   }
 
-  const location = response.headers.get("location");
-  if (!location) throw new Error("A Morena não retornou o endereço do catálogo.");
+  if (!postLocation) {
+    throw new Error("A Morena não retornou o endereço do catálogo.");
+  }
 
-  const catalogUrl = new URL(location, PROCESS_URL);
+  const catalogUrl = new URL(postLocation, PROCESS_URL);
+
+  console.log("[Morena] URL do catálogo:", catalogUrl.toString());
+
   return {
     cookie,
     catalogUrl: catalogUrl.toString(),
@@ -117,6 +127,12 @@ export async function fetchMorenaPedido(cpf: string, pedido: string) {
     "[Morena] Referências encontradas:",
     products.map((product) => product.sku),
   );
+
+  if (response.url.toLowerCase().includes("/pdf/indisponivel.asp")) {
+    throw new Error(
+      "A Morena não disponibilizou este pedido. Verifique se o CPF e o número do pedido estão corretos e se o pedido já está disponível para consulta.",
+    );
+  }
 
   if (products.length === 0) {
     throw new Error("A consulta foi aceita, mas nenhum produto foi encontrado no catálogo.");
