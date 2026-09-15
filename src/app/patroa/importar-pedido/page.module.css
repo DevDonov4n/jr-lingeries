@@ -1,0 +1,174 @@
+.page {
+  min-height: 100vh;
+  padding: 48px 20px;
+  background: #fff0f5;
+}
+
+.card {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 32px;
+  border: 1px solid #f1d7df;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(74, 62, 61, 0.08);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: #b56b7d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card h1,
+.results h2 {
+  margin: 0;
+  color: #4a3e3d;
+}
+
+.description {
+  max-width: 700px;
+  margin: 10px 0 28px;
+  color: #756867;
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  color: #4a3e3d;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.form input {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #e6cbd3;
+  border-radius: 12px;
+  outline: none;
+  color: #4a3e3d;
+  background: #fffafd;
+}
+
+.form input:focus {
+  border-color: #ffb6c1;
+  box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.2);
+}
+
+.form button {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  background: #ff8fa3;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.message {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  color: #4a3e3d;
+  background: #fff0f5;
+}
+
+.results {
+  margin-top: 34px;
+  padding-top: 28px;
+  border-top: 1px solid #f1d7df;
+}
+
+.resultsHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.resultsHeader > strong {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #ffb6c1;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.product {
+  overflow: hidden;
+  border: 1px solid #f1d7df;
+  border-radius: 16px;
+  background: #fffafd;
+}
+
+.product img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: #ffffff;
+}
+
+.product div {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+}
+
+.product strong {
+  color: #4a3e3d;
+}
+
+.product span {
+  color: #887978;
+  font-size: 0.82rem;
+}
+
+.note {
+  margin: 20px 0 0;
+  color: #756867;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 24px 14px;
+  }
+
+  .card {
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+
+  .form {
+    grid-template-columns: 1fr;
+  }
+}
