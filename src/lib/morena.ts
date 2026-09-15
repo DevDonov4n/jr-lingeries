@@ -26,6 +26,13 @@ function extractCookies(headers: Headers) {
     : "";
 }
 
+function getCookieNames(cookieHeader: string) {
+  return cookieHeader
+    .split(";")
+    .map((part) => part.split("=", 1)[0].trim())
+    .filter(Boolean);
+}
+
 function mergeCookies(...cookieHeaders: string[]) {
   const cookies = new Map<string, string>();
   for (const header of cookieHeaders) {
@@ -56,8 +63,16 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
 
   let cookie = extractCookies(pageResponse.headers);
   console.log("[Morena] GET /pdf/ possui cookie extraído:", Boolean(cookie));
+  console.log("[Morena] GET /pdf/ nomes dos cookies:", getCookieNames(cookie).join(", ") || "(nenhum)");
 
   const body = new URLSearchParams({ CPF: cpf, PEDIDO: pedido, x: "21", y: "6" });
+
+  console.log("[Morena] POST URL:", PROCESS_URL);
+  console.log("[Morena] POST Content-Type: application/x-www-form-urlencoded");
+  console.log("[Morena] POST Referer:", PDF_PAGE_URL);
+  console.log("[Morena] POST Origin:", MORENA_BASE_URL);
+  console.log("[Morena] CPF enviado: caracteres:", cpf.length, "formatado:", /\D/.test(cpf));
+  console.log("[Morena] Pedido enviado: caracteres:", pedido.length);
 
   const response = await fetch(PROCESS_URL, {
     method: "POST",
