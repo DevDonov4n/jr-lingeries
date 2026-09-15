@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await fetchMorenaPedido(cpf.replace(/\D/g, ""), pedido);
+    const result = await fetchMorenaPedido(cpf, pedido);
     return NextResponse.json(result);
   } catch (error) {
     console.error("[import-pedido]", error);
