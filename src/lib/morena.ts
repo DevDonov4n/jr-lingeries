@@ -65,13 +65,23 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
   console.log("[Morena] GET /pdf/ possui cookie extraído:", Boolean(cookie));
   console.log("[Morena] GET /pdf/ nomes dos cookies:", getCookieNames(cookie).join(", ") || "(nenhum)");
 
-  const body = new URLSearchParams({ CPF: cpf, PEDIDO: pedido, x: "21", y: "6" });
+  const cpfFormatado = cpf.replace(
+    /(\d{3})(\d{3})(\d{3})(\d{2})/,
+    "$1.$2.$3-$4",
+  );
+
+  const body = new URLSearchParams({
+    CPF: cpfFormatado,
+    PEDIDO: pedido,
+    x: "21",
+    y: "6",
+  });
 
   console.log("[Morena] POST URL:", PROCESS_URL);
   console.log("[Morena] POST Content-Type: application/x-www-form-urlencoded");
   console.log("[Morena] POST Referer:", PDF_PAGE_URL);
   console.log("[Morena] POST Origin:", MORENA_BASE_URL);
-  console.log("[Morena] CPF enviado: caracteres:", cpf.length, "formatado:", /\D/.test(cpf));
+  console.log("[Morena] CPF enviado: caracteres:", cpfFormatado.length, "formatado:", /\D/.test(cpfFormatado));
   console.log("[Morena] Pedido enviado: caracteres:", pedido.length);
 
   const response = await fetch(PROCESS_URL, {
