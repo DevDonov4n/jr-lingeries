@@ -47,11 +47,16 @@ async function startMorenaSession(cpf: string, pedido: string): Promise<MorenaSe
     cache: "no-store",
   });
 
+  console.log("[Morena] GET /pdf/ status:", pageResponse.status);
+  console.log("[Morena] GET /pdf/ possui Set-Cookie:", Boolean(pageResponse.headers.get("set-cookie")));
+
   if (!pageResponse.ok) {
     throw new Error(`Não foi possível iniciar a sessão da Morena (HTTP ${pageResponse.status}).`);
   }
 
   let cookie = extractCookies(pageResponse.headers);
+  console.log("[Morena] GET /pdf/ possui cookie extraído:", Boolean(cookie));
+
   const body = new URLSearchParams({ CPF: cpf, PEDIDO: pedido, x: "21", y: "6" });
 
   const response = await fetch(PROCESS_URL, {
