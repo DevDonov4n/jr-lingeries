@@ -171,6 +171,14 @@ export default function PatroaClient({
           </span>
           <b>Gerenciar ofertas →</b>
         </a>
+        <a className={styles.quickCard} href="/patroa/importar-pedido">
+          <strong>Importar produtos</strong>
+          <span>
+            Consultar pedidos da Morena Lingerie e preparar novos produtos para
+            o estoque.
+          </span>
+          <b>Importar produtos →</b>
+        </a>
       </section>
     </main>
   );
