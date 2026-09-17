@@ -64,12 +64,17 @@ export async function POST(request: Request) {
       };
     });
 
+    const serializedCategories = categories.map((category) => ({
+      id: category.id.toString(),
+      name: category.name,
+    }));
+
     return NextResponse.json({
       pedido: result.pedido,
       cadastroId: result.cadastroId,
       total: result.total,
       products,
-      categories,
+      categories: serializedCategories,
     });
   } catch (error) {
     console.error("[import-pedido]", error);
