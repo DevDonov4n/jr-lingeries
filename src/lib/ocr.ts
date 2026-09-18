@@ -32,7 +32,10 @@ async function getWorker() {
   return workerPromise;
 }
 
-async function preprocessImage(imageBuffer: ArrayBuffer, mode: OcrMode) {
+export async function preprocessImage(
+  imageBuffer: ArrayBuffer,
+  mode: OcrMode,
+) {
   const image = sharp(Buffer.from(imageBuffer));
 
   if (mode === undefined) {
@@ -57,6 +60,23 @@ async function preprocessImage(imageBuffer: ArrayBuffer, mode: OcrMode) {
     .sharpen()
     .png()
     .toBuffer();
+}
+
+export async function downloadAndPreprocessImage(
+  imageUrl: string,
+  mode: OcrMode = "current",
+) {
+  const response = await fetch(imageUrl);
+
+  if (!response.ok) {
+    throw new Error(
+      `Não foi possível baixar a imagem. Status: ${response.status}`,
+    );
+  }
+
+  const imageBuffer = await response.arrayBuffer();
+
+  return preprocessImage(imageBuffer, mode);
 }
 
 export async function extractTextFromImage(
