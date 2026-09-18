@@ -140,24 +140,24 @@ async function getProductRegionBounds(
       left: labelLeft,
       top: labelTop,
       width: labelWidth,
-      height: Math.round(labelHeight * 0.42),
+      height: Math.round(labelHeight * 0.30),
     };
   }
 
   if (region === "price") {
     return {
       left: labelLeft,
-      top: labelTop + Math.round(labelHeight * 0.30),
-      width: Math.round(labelWidth * 0.70),
-      height: Math.round(labelHeight * 0.34),
+      top: labelTop + Math.round(labelHeight * 0.16),
+      width: Math.round(labelWidth * 0.55),
+      height: Math.round(labelHeight * 0.25),
     };
   }
 
   return {
-    left: labelLeft + Math.round(labelWidth * 0.25),
-    top: labelTop + Math.round(labelHeight * 0.30),
-    width: Math.round(labelWidth * 0.75),
-    height: Math.round(labelHeight * 0.38),
+    left: labelLeft + Math.round(labelWidth * 0.50),
+    top: labelTop + Math.round(labelHeight * 0.16),
+    width: Math.round(labelWidth * 0.50),
+    height: Math.round(labelHeight * 0.30),
   };
 }
 
@@ -178,6 +178,16 @@ async function preprocessLabelRegion(
   const safeTop = Math.max(0, Math.min(top, imageHeight - 1));
   const safeWidth = Math.max(1, Math.min(width, imageWidth - safeLeft));
   const safeHeight = Math.max(1, Math.min(height, imageHeight - safeTop));
+
+  console.log(
+    "[OCR] Recorte seguro:",
+    JSON.stringify({
+      left: safeLeft,
+      top: safeTop,
+      width: safeWidth,
+      height: safeHeight,
+    }),
+  );
 
   return image
     .extract({
@@ -215,7 +225,13 @@ export async function preprocessProductRegion(
     JSON.stringify({ region, ...bounds }),
   );
 
-  return preprocessLabelRegion(imageBuffer, bounds.left, bounds.top, bounds.width, bounds.height);
+  return preprocessLabelRegion(
+    imageBuffer,
+    bounds.left,
+    bounds.top,
+    bounds.width,
+    bounds.height,
+  );
 }
 
 async function recognizeRegion(
@@ -276,23 +292,23 @@ export async function extractProductFieldsFromImage(
     labelLeft,
     labelTop,
     labelWidth,
-    Math.round(labelHeight * 0.42),
+    Math.round(labelHeight * 0.30),
   );
 
   const priceImage = await preprocessLabelRegion(
     imageBuffer,
-    labelLeft,
-    labelTop + Math.round(labelHeight * 0.30),
-    Math.round(labelWidth * 0.70),
-    Math.round(labelHeight * 0.34),
+    labelLeft + Math.round(labelWidth * 0.03),
+    labelTop + Math.round(labelHeight * 0.16),
+    Math.round(labelWidth * 0.52),
+    Math.round(labelHeight * 0.25),
   );
 
   const quantityImage = await preprocessLabelRegion(
     imageBuffer,
-    labelLeft + Math.round(labelWidth * 0.25),
-    labelTop + Math.round(labelHeight * 0.30),
-    Math.round(labelWidth * 0.75),
-    Math.round(labelHeight * 0.38),
+    labelLeft + Math.round(labelWidth * 0.50),
+    labelTop + Math.round(labelHeight * 0.16),
+    Math.round(labelWidth * 0.50),
+    Math.round(labelHeight * 0.30),
   );
 
   const skuMatch = imageUrl.match(/\/tags\/([^/?#]+)\.png(?:[?#].*)?$/i);
