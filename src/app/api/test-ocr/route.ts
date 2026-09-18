@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractTextFromImage } from "@/lib/ocr";
+import { extractTextFromImage, type OcrPsm } from "@/lib/ocr";
 
-type OcrMode = "original" | "current" | "aggressive";
+const VALID_PSM = new Set<OcrPsm>([3, 6, 11, 12]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +9,17 @@ export async function POST(request: NextRequest) {
     const imageUrl =
       typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
 
-    const mode: OcrMode =
+    const mode =
       body.mode === "original" ||
       body.mode === "aggressive" ||
       body.mode === "current"
         ? body.mode
         : "current";
+
+    const psmCandidate = Number(body.psm);
+    const psm: OcrPsm = VALID_PSM.has(psmCandidate as OcrPsm)
+      ? (psmCandidate as OcrPsm)
+      : 6;
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -24,10 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     const ocrMode = mode === "original" ? undefined : mode;
-    const text = await extractTextFromImage(imageUrl, ocrMode);
+    const text = await extractTextFromImage(imageUrl, ocrMode, psm);
 
     return NextResponse.json({
       mode,
+      psm,
       text,
     });
   } catch (error) {
