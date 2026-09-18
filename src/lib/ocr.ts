@@ -120,8 +120,40 @@ async function preprocessLabelRegion(
   width: number,
   height: number,
 ) {
-  return sharp(imageBuffer)
-    .extract({ left, top, width, height })
+  const image = sharp(imageBuffer);
+  const metadata = await image.metadata();
+
+  const imageWidth = metadata.width ?? 600;
+  const imageHeight = metadata.height ?? 900;
+
+  const safeLeft = Math.max(0, Math.min(left, imageWidth - 1));
+  const safeTop = Math.max(0, Math.min(top, imageHeight - 1));
+  const safeWidth = Math.max(
+    1,
+    Math.min(width, imageWidth - safeLeft),
+  );
+  const safeHeight = Math.max(
+    1,
+    Math.min(height, imageHeight - safeTop),
+  );
+
+  console.log(
+    "[OCR] Recorte seguro:",
+    JSON.stringify({
+      left: safeLeft,
+      top: safeTop,
+      width: safeWidth,
+      height: safeHeight,
+    }),
+  );
+
+  return image
+    .extract({
+      left: safeLeft,
+      top: safeTop,
+      width: safeWidth,
+      height: safeHeight,
+    })
     .resize({ width: 1800 })
     .grayscale()
     .normalize()
@@ -184,7 +216,6 @@ export async function extractProductFieldsFromImage(
 
   const worker = await getWorker();
 
-  // Nome: mantém a etiqueta inteira na primeira faixa.
   const nameImage = await preprocessLabelRegion(
     imageBuffer,
     labelLeft,
@@ -193,7 +224,6 @@ export async function extractProductFieldsFromImage(
     Math.round(labelHeight * 0.42),
   );
 
-  // Preço: área mais ampla para capturar toda a linha "R$ 69,90".
   const priceImage = await preprocessLabelRegion(
     imageBuffer,
     labelLeft,
@@ -202,7 +232,6 @@ export async function extractProductFieldsFromImage(
     Math.round(labelHeight * 0.34),
   );
 
-  // Quantidade: área mais ampla para capturar "Contém 1 Peça".
   const quantityImage = await preprocessLabelRegion(
     imageBuffer,
     labelLeft + Math.round(labelWidth * 0.25),
@@ -211,7 +240,6 @@ export async function extractProductFieldsFromImage(
     Math.round(labelHeight * 0.38),
   );
 
-  // O SKU já está definido pela própria URL da imagem /tags/{sku}.png.
   const skuMatch = imageUrl.match(/\/tags\/([^/?#]+)\.png(?:[?#].*)?$/i);
   const sku = skuMatch?.[1] ?? "";
 
