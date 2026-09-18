@@ -35,7 +35,7 @@ export default function ImportarPedidoPage() {
       const response = await fetch("/api/import-pedido/analisar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sku, imageUrl }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error || "Não foi possível analisar o produto.");
       setProducts((current) => current.map((product) => product.sku === sku ? { ...product, status: result.status, existing: result.existing, analysis: result.analysis } : product));
-    } catch (error) { setProducts((current) => current.map((product) => product.sku === sku ? { ...product, actionMessage: error instanceof Error ? error.message : "Falha na análise OCR." } : product)); }
+    } catch (error) { setProducts((current) => current.map((product) => product.sku === sku ? { ...product, actionMessage: error instanceof Error ? error.message : "Falha na análise com Gemini." } : product)); }
     finally { setAnalyzing(null); }
   }
 
@@ -57,7 +57,7 @@ export default function ImportarPedidoPage() {
 
   return <main className={styles.page}><section className={styles.card}>
     <span className={styles.eyebrow}>JR Lingeries · Patroa</span><h1>Importar pedido da Morena</h1>
-    <p className={styles.description}>Consulte o pedido, confira o preenchimento por OCR e confirme cada alteração antes de mexer no estoque.</p>
+    <p className={styles.description}>Consulte o pedido, confira o preenchimento por Gemini e confirme cada alteração antes de mexer no estoque.</p>
     <form onSubmit={submit} className={styles.form}>
       <label>CPF cadastrado na Morena<input value={cpf} onChange={(event) => setCpf(event.target.value)} inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" maxLength={14} required /></label>
       <label>Número do pedido<input value={pedido} onChange={(event) => setPedido(onlyDigits(event.target.value))} inputMode="numeric" placeholder="Ex.: 557830" required /></label>
@@ -65,20 +65,20 @@ export default function ImportarPedidoPage() {
     </form>
     {message && <div className={styles.message}>{message}</div>}
     {products.length > 0 && <section className={styles.results}>
-      <div className={styles.resultsHeader}><div><span className={styles.eyebrow}>Prévia por OCR</span><h2>Produtos encontrados</h2></div><strong>{products.length}</strong></div>
+      <div className={styles.resultsHeader}><div><span className={styles.eyebrow}>Prévia por Gemini</span><h2>Produtos encontrados</h2></div><strong>{products.length}</strong></div>
       <div className={styles.productList}>{products.map((product) => {
         const existing = product.status === "EXISTENTE"; const analysis = product.analysis ?? { name: "", description: "", size: "", color: "", category: "", costPrice: 0, salePrice: 0 }; const newStock = (product.existing?.stockQuantity ?? 0) + product.quantity;
         return <article className={`${styles.productCard} ${existing ? styles.existing : styles.newProduct}`} key={product.sku}>
           <div className={styles.imageWrap}><img src={product.imageUrl} alt={`Produto ${product.sku}`} /></div><div className={styles.productInfo}>
             <div className={styles.statusRow}><span className={styles.sku}>SKU {product.sku}</span><span className={styles.status}>{product.status ? (existing ? "Produto existente" : "Novo cadastro") : "Verificando..."}</span></div>
-            {analyzing === product.sku && <p className={styles.analyzing}>Lendo etiqueta com OCR...</p>}
+            {analyzing === product.sku && <p className={styles.analyzing}>Analisando imagem com Gemini...</p>}
             {existing ? <><h3>{product.existing?.name}</h3><p className={styles.meta}>{product.existing?.category ?? "Sem categoria"} · Estoque atual: {product.existing?.stockQuantity ?? 0}</p><div className={styles.stockBox}><span>Quantidade no pedido</span><strong>+{product.quantity}</strong><small>Novo estoque: {newStock}</small></div><button className={styles.actionButton} disabled={acting === product.sku || product.actionDone || !product.status} onClick={() => actionProduct(product)}>{product.actionDone ? "Estoque atualizado ✓" : acting === product.sku ? "Atualizando..." : `Adicionar ${product.quantity} ao estoque`}</button></> : <>
               <div className={styles.fields}><label>Nome<input value={analysis.name} onChange={(event) => updateNewField(product.sku, "name", event.target.value)} /></label><label>Descrição<textarea value={analysis.description} onChange={(event) => updateNewField(product.sku, "description", event.target.value)} /></label><div className={styles.twoFields}><label>Tamanho<input value={analysis.size} onChange={(event) => updateNewField(product.sku, "size", event.target.value)} /></label><label>Cor<input value={analysis.color} onChange={(event) => updateNewField(product.sku, "color", event.target.value)} /></label></div><label>Categoria<select value={analysis.category} onChange={(event) => updateNewField(product.sku, "category", event.target.value)}><option value="">Selecione</option>{categories.map((category) => <option key={String(category.id)} value={category.name}>{category.name}</option>)}</select></label><div className={styles.twoFields}><label>Custo<input type="number" min="0" step="0.01" value={analysis.costPrice ?? 0} onChange={(event) => updateNewField(product.sku, "costPrice", Number(event.target.value))} /></label><label>Venda<input type="number" min="0" step="0.01" value={analysis.salePrice ?? 0} onChange={(event) => updateNewField(product.sku, "salePrice", Number(event.target.value))} /></label></div></div>
               <p className={styles.quantity}>Estoque inicial: <strong>{product.quantity} unidade(s)</strong></p><button className={styles.actionButton} disabled={acting === product.sku || product.actionDone || !product.status} onClick={() => actionProduct(product)}>{product.actionDone ? "Produto cadastrado ✓" : acting === product.sku ? "Cadastrando..." : "Cadastrar produto no banco"}</button>
             </>}
             {product.actionMessage && <p className={styles.actionMessage}>{product.actionMessage}</p>}
           </div></article>;
-      })}</div><p className={styles.note}>O OCR apenas pré-preenche os dados. Revise tudo antes de cadastrar. A quantidade do estoque vem do pedido da Morena, não do texto "Contém 1 Peça" da etiqueta. Produtos existentes só têm o estoque alterado quando você confirmar.</p>
+      })}</div><p className={styles.note}>O Gemini apenas pré-preenche os dados. Revise tudo antes de cadastrar. A quantidade do estoque vem do pedido da Morena, não do texto "Contém 1 Peça" da etiqueta. Produtos existentes só têm o estoque alterado quando você confirmar.</p>
     </section>}
   </section></main>;
 }
