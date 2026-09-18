@@ -4,7 +4,14 @@ import { createWorker } from "tesseract.js";
 
 type OcrMode = undefined | "current" | "aggressive" | "label";
 
-export type OcrPsm = 3 | 6 | 11 | 12;
+export type OcrPsm = 3 | 6 | 7 | 11 | 12;
+
+export interface OcrProductFields {
+  name: string;
+  price: string;
+  quantity: string;
+  sku: string;
+}
 
 let workerPromise: ReturnType<typeof createWorker> | null = null;
 
@@ -48,10 +55,10 @@ export async function preprocessImage(
     const width = metadata.width ?? 600;
     const height = metadata.height ?? 900;
 
-    const left = Math.round(width * 0.47);
-    const top = Math.round(height * 0.70);
-    const cropWidth = Math.min(width - left, Math.round(width * 0.51));
-    const cropHeight = Math.min(height - top, Math.round(height * 0.24));
+    const left = Math.round(width * 0.67);
+    const top = Math.round(height * 0.69);
+    const cropWidth = Math.min(width - left, Math.round(width * 0.33));
+    const cropHeight = Math.min(height - top, Math.round(height * 0.29));
 
     console.log(
       "[OCR] Recortando etiqueta:",
@@ -111,6 +118,146 @@ export async function downloadAndPreprocessImage(
   return preprocessImage(imageBuffer, mode);
 }
 
+async function preprocessLabelRegion(
+  imageBuffer: Buffer,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+) {
+  return sharp(imageBuffer)
+    .extract({ left, top, width, height })
+    .resize({ width: 1600 })
+    .grayscale()
+    .normalize()
+    .linear(1.6, -70)
+    .sharpen()
+    .png()
+    .toBuffer();
+}
+
+async function recognizeRegion(
+  worker: Awaited<ReturnType<typeof getWorker>>,
+  image: Buffer,
+  psm: OcrPsm,
+  whitelist?: string,
+) {
+  const parameters: Record<string, string> = {
+    tessedit_pageseg_mode: String(psm),
+  };
+
+  if (whitelist) {
+    parameters.tessedit_char_whitelist = whitelist;
+  }
+
+  await worker.setParameters(parameters);
+
+  const result = await worker.recognize(image);
+
+  return result.data.text.trim();
+}
+
+export async function extractProductFieldsFromImage(
+  imageUrl: string,
+): Promise<OcrProductFields> {
+  console.log("[OCR] Baixando imagem para extração por campos:", imageUrl);
+
+  const response = await fetch(imageUrl);
+
+  if (!response.ok) {
+    throw new Error(
+      `Não foi possível baixar a imagem. Status: ${response.status}`,
+    );
+  }
+
+  const imageBuffer = Buffer.from(await response.arrayBuffer());
+  const metadata = await sharp(imageBuffer).metadata();
+
+  const imageWidth = metadata.width ?? 600;
+  const imageHeight = metadata.height ?? 900;
+
+  // Região da etiqueta branca no canto inferior direito.
+  const labelLeft = Math.round(imageWidth * 0.67);
+  const labelTop = Math.round(imageHeight * 0.69);
+  const labelWidth = Math.min(
+    imageWidth - labelLeft,
+    Math.round(imageWidth * 0.33),
+  );
+  const labelHeight = Math.min(
+    imageHeight - labelTop,
+    Math.round(imageHeight * 0.29),
+  );
+
+  const worker = await getWorker();
+
+  // Coordenadas relativas à etiqueta.
+  const nameImage = await preprocessLabelRegion(
+    imageBuffer,
+    labelLeft,
+    labelTop,
+    labelWidth,
+    Math.round(labelHeight * 0.34),
+  );
+
+  const priceImage = await preprocessLabelRegion(
+    imageBuffer,
+    labelLeft,
+    labelTop + Math.round(labelHeight * 0.34),
+    Math.round(labelWidth * 0.55),
+    Math.round(labelHeight * 0.27),
+  );
+
+  const quantityImage = await preprocessLabelRegion(
+    imageBuffer,
+    labelLeft + Math.round(labelWidth * 0.50),
+    labelTop + Math.round(labelHeight * 0.34),
+    Math.round(labelWidth * 0.50),
+    Math.round(labelHeight * 0.27),
+  );
+
+  const skuImage = await preprocessLabelRegion(
+    imageBuffer,
+    labelLeft + Math.round(labelWidth * 0.15),
+    labelTop + Math.round(labelHeight * 0.82),
+    Math.round(labelWidth * 0.70),
+    Math.round(labelHeight * 0.18),
+  );
+
+  console.log("[OCR] Reconhecendo campo: nome");
+  const name = await recognizeRegion(worker, nameImage, 6);
+
+  console.log("[OCR] Reconhecendo campo: preço");
+  const price = await recognizeRegion(
+    worker,
+    priceImage,
+    7,
+    "R$0123456789,.",
+  );
+
+  console.log("[OCR] Reconhecendo campo: quantidade");
+  const quantity = await recognizeRegion(
+    worker,
+    quantityImage,
+    6,
+    "ContémPecapecA0123456789 ",
+  );
+
+  console.log("[OCR] Reconhecendo campo: SKU");
+  const sku = await recognizeRegion(
+    worker,
+    skuImage,
+    7,
+    "0123456789",
+  );
+
+  return {
+    name,
+    price,
+    quantity,
+    sku,
+  };
+}
+
 export async function extractTextFromImage(
   imageUrl: string,
   mode: OcrMode = "current",
@@ -144,19 +291,11 @@ export async function extractTextFromImage(
 
   const worker = await getWorker();
 
-  await worker.setParameters({
-    tessedit_pageseg_mode: String(psm),
-  });
-
-  console.log(
-    `[OCR] Iniciando reconhecimento (${mode ?? "original"}, PSM ${psm})...`,
-  );
-
-  const result = await worker.recognize(processedImage);
+  const result = await recognizeRegion(worker, processedImage, psm);
 
   console.log(
     `[OCR] Reconhecimento concluído (${mode ?? "original"}, PSM ${psm}).`,
   );
 
-  return result.data.text.trim();
+  return result;
 }
