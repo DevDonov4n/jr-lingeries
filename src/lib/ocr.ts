@@ -66,12 +66,7 @@ export async function preprocessImage(
     );
 
     return image
-      .extract({
-        left,
-        top,
-        width: cropWidth,
-        height: cropHeight,
-      })
+      .extract({ left, top, width: cropWidth, height: cropHeight })
       .resize({ width: 2400 })
       .grayscale()
       .normalize()
@@ -176,7 +171,6 @@ export async function extractProductFieldsFromImage(
   const imageWidth = metadata.width ?? 600;
   const imageHeight = metadata.height ?? 900;
 
-  // Região da etiqueta branca no canto inferior direito.
   const labelLeft = Math.round(imageWidth * 0.45);
   const labelTop = Math.round(imageHeight * 0.69);
   const labelWidth = Math.min(
@@ -190,35 +184,35 @@ export async function extractProductFieldsFromImage(
 
   const worker = await getWorker();
 
-  // Nome: primeira faixa da etiqueta.
+  // Nome: mantém a etiqueta inteira na primeira faixa.
   const nameImage = await preprocessLabelRegion(
     imageBuffer,
     labelLeft,
     labelTop,
     labelWidth,
-    Math.round(labelHeight * 0.40),
+    Math.round(labelHeight * 0.42),
   );
 
-  // Preço: faixa inferior esquerda, onde aparece "R$ 69,90".
+  // Preço: área mais ampla para capturar toda a linha "R$ 69,90".
   const priceImage = await preprocessLabelRegion(
     imageBuffer,
     labelLeft,
-    labelTop + Math.round(labelHeight * 0.36),
-    Math.round(labelWidth * 0.60),
-    Math.round(labelHeight * 0.28),
-  );
-
-  // Quantidade: faixa inferior direita, incluindo "Contém 1 Peça".
-  const quantityImage = await preprocessLabelRegion(
-    imageBuffer,
-    labelLeft + Math.round(labelWidth * 0.35),
-    labelTop + Math.round(labelHeight * 0.34),
-    Math.round(labelWidth * 0.65),
+    labelTop + Math.round(labelHeight * 0.30),
+    Math.round(labelWidth * 0.70),
     Math.round(labelHeight * 0.34),
   );
 
-  // O SKU é extraído diretamente da URL /tags/{sku}.png.
-  const skuMatch = imageUrl.match(//tags/([^/?#]+).png(?:[?#].*)?$/i);
+  // Quantidade: área mais ampla para capturar "Contém 1 Peça".
+  const quantityImage = await preprocessLabelRegion(
+    imageBuffer,
+    labelLeft + Math.round(labelWidth * 0.25),
+    labelTop + Math.round(labelHeight * 0.30),
+    Math.round(labelWidth * 0.75),
+    Math.round(labelHeight * 0.38),
+  );
+
+  // O SKU já está definido pela própria URL da imagem /tags/{sku}.png.
+  const skuMatch = imageUrl.match(/\/tags\/([^/?#]+)\.png(?:[?#].*)?$/i);
   const sku = skuMatch?.[1] ?? "";
 
   console.log("[OCR] Reconhecendo campo: nome");
