@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { downloadAndPreprocessImage } from "@/lib/ocr";
+import {
+  downloadAndPreprocessImage,
+  preprocessProductRegion,
+} from "@/lib/ocr";
 
 export async function GET(request: NextRequest) {
   try {
     const imageUrl =
       request.nextUrl.searchParams.get("imageUrl")?.trim() ?? "";
     const modeParam = request.nextUrl.searchParams.get("mode") ?? "aggressive";
+
+    const regionMode =
+      modeParam === "name" ||
+      modeParam === "price" ||
+      modeParam === "quantity"
+        ? modeParam
+        : null;
 
     const mode =
       modeParam === "original" ||
@@ -20,6 +30,20 @@ export async function GET(request: NextRequest) {
         { error: "Informe a URL da imagem." },
         { status: 400 },
       );
+    }
+
+    if (regionMode) {
+      const processedRegion = await preprocessProductRegion(
+        imageUrl,
+        regionMode,
+      );
+
+      return new NextResponse(processedRegion, {
+        headers: {
+          "Content-Type": "image/png",
+          "Cache-Control": "no-store",
+        },
+      });
     }
 
     const response = await fetch(imageUrl);
