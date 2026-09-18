@@ -5,7 +5,10 @@ let workerPromise: ReturnType<typeof createWorker> | null = null;
 async function getWorker() {
   if (!workerPromise) {
     console.log("[OCR] Inicializando worker...");
-    workerPromise = createWorker("por");
+
+    workerPromise = createWorker("por", 1, {
+      workerPath: require.resolve("tesseract.js/src/worker-script/node/index.js"),
+    });
   }
 
   return workerPromise;
