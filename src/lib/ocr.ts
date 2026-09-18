@@ -1,3 +1,4 @@
+import path from "node:path";
 import { createWorker } from "tesseract.js";
 
 let workerPromise: ReturnType<typeof createWorker> | null = null;
@@ -6,8 +7,20 @@ async function getWorker() {
   if (!workerPromise) {
     console.log("[OCR] Inicializando worker...");
 
+    const workerPath = path.join(
+      process.cwd(),
+      "node_modules",
+      "tesseract.js",
+      "src",
+      "worker-script",
+      "node",
+      "index.js",
+    );
+
+    console.log("[OCR] Worker path:", workerPath);
+
     workerPromise = createWorker("por", 1, {
-      workerPath: require.resolve("tesseract.js/src/worker-script/node/index.js"),
+      workerPath,
     });
   }
 
