@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractTextFromImage } from "@/lib/ocr";
 
+type OcrMode = "original" | "current" | "aggressive";
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
+    const imageUrl =
+      typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
+
+    const mode: OcrMode =
+      body.mode === "original" ||
+      body.mode === "aggressive" ||
+      body.mode === "current"
+        ? body.mode
+        : "current";
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -13,16 +23,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const results = await Promise.all(
-      [undefined, "current", "aggressive"].map((mode) =>
-        extractTextFromImage(imageUrl, mode),
-      ),
-    );
+    const ocrMode = mode === "original" ? undefined : mode;
+    const text = await extractTextFromImage(imageUrl, ocrMode);
 
     return NextResponse.json({
-      original: results[0],
-      current: results[1],
-      aggressive: results[2],
+      mode,
+      text,
     });
   } catch (error) {
     console.error("Erro no teste de OCR:", error);
