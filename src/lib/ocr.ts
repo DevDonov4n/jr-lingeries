@@ -147,17 +147,17 @@ async function getProductRegionBounds(
   if (region === "price") {
     return {
       left: labelLeft,
-      top: labelTop + Math.round(labelHeight * 0.16),
+      top: labelTop + Math.round(labelHeight * 0.40),
       width: Math.round(labelWidth * 0.55),
-      height: Math.round(labelHeight * 0.25),
+      height: Math.round(labelHeight * 0.28),
     };
   }
 
   return {
-    left: labelLeft + Math.round(labelWidth * 0.50),
-    top: labelTop + Math.round(labelHeight * 0.16),
-    width: Math.round(labelWidth * 0.50),
-    height: Math.round(labelHeight * 0.30),
+    left: labelLeft + Math.round(labelWidth * 0.48),
+    top: labelTop + Math.round(labelHeight * 0.43),
+    width: Math.round(labelWidth * 0.52),
+    height: Math.round(labelHeight * 0.28),
   };
 }
 
@@ -297,18 +297,18 @@ export async function extractProductFieldsFromImage(
 
   const priceImage = await preprocessLabelRegion(
     imageBuffer,
-    labelLeft + Math.round(labelWidth * 0.03),
-    labelTop + Math.round(labelHeight * 0.16),
-    Math.round(labelWidth * 0.52),
-    Math.round(labelHeight * 0.25),
+    labelLeft,
+    labelTop + Math.round(labelHeight * 0.40),
+    Math.round(labelWidth * 0.55),
+    Math.round(labelHeight * 0.28),
   );
 
   const quantityImage = await preprocessLabelRegion(
     imageBuffer,
-    labelLeft + Math.round(labelWidth * 0.50),
-    labelTop + Math.round(labelHeight * 0.16),
-    Math.round(labelWidth * 0.50),
-    Math.round(labelHeight * 0.30),
+    labelLeft + Math.round(labelWidth * 0.48),
+    labelTop + Math.round(labelHeight * 0.43),
+    Math.round(labelWidth * 0.52),
+    Math.round(labelHeight * 0.28),
   );
 
   const skuMatch = imageUrl.match(/\/tags\/([^/?#]+)\.png(?:[?#].*)?$/i);
