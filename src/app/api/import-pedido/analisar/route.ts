@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { extractProductFieldsFromImage } from "@/lib/ocr";
 
 export const runtime = "nodejs";
 
@@ -15,10 +16,39 @@ type Analysis = {
   size: string;
   color: string;
   category: string;
+  costPrice?: number;
+  salePrice?: number;
 };
+
+function parsePrice(value: string) {
+  const match = value
+    .replace(/\s/g, "")
+    .match(/(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[.,]\d{2})/);
+
+  if (!match) return 0;
+
+  const normalized = match[1].includes(",")
+    ? match[1].replace(/\./g, "").replace(",", ".")
+    : match[1];
+
+  const price = Number(normalized);
+  return Number.isFinite(price) ? price : 0;
+}
+
+function cleanOcrText(value: string) {
+  return value
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export async function POST(request: Request) {
   const session = await getSession();
+
   if (!session || session.role !== "PATROA") {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
@@ -29,12 +59,19 @@ export async function POST(request: Request) {
     const imageUrl = body.imageUrl?.trim();
 
     if (!sku || !imageUrl) {
-      return NextResponse.json({ error: "SKU e imagem são obrigatórios." }, { status: 400 });
+      return NextResponse.json(
+        { error: "SKU e imagem são obrigatórios." },
+        { status: 400 },
+      );
     }
 
     const existing = await prisma.products.findUnique({
       where: { sku },
-      include: { categories: { select: { id: true, name: true } } },
+      include: {
+        categories: {
+          select: { id: true, name: true },
+        },
+      },
     });
 
     const categories = await prisma.categories.findMany({
@@ -43,102 +80,75 @@ export async function POST(request: Request) {
       select: { id: true, name: true },
     });
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    const serializedCategories = categories.map((category) => ({
+      id: category.id.toString(),
+      name: category.name,
+    }));
+
+    if (existing) {
       return NextResponse.json({
         sku,
-        status: existing ? "EXISTENTE" : "NOVO",
-        existing: existing
-          ? {
-              id: existing.id.toString(),
-              name: existing.name,
-              stockQuantity: existing.stock_quantity,
-              imageUrl: existing.image_url,
-              category: existing.categories?.name ?? null,
-            }
-          : null,
+        status: "EXISTENTE",
+        existing: {
+          id: existing.id.toString(),
+          name: existing.name,
+          description: existing.description,
+          size: existing.size,
+          color: existing.color,
+          costPrice: Number(existing.cost_price),
+          salePrice: Number(existing.sale_price),
+          stockQuantity: existing.stock_quantity,
+          categoryId: existing.category_id?.toString() ?? null,
+          category: existing.categories?.name ?? null,
+          imageUrl: existing.image_url,
+        },
         analysis: null,
-        categories,
-        warning: "OPENAI_API_KEY não configurada. O produto foi verificado no banco, mas a análise automática da imagem não foi executada.",
+        categories: serializedCategories,
       });
     }
 
-    const imageResponse = await fetch(imageUrl, { cache: "no-store" });
-    if (!imageResponse.ok) {
-      throw new Error(`Não foi possível baixar a imagem do SKU ${sku}.`);
-    }
+    console.log("[import-pedido/analisar] Iniciando OCR:", sku);
 
-    const contentType = imageResponse.headers.get("content-type") || "image/png";
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-    const imageData = `data:${contentType};base64,${imageBuffer.toString("base64")}`;
+    const fields = await extractProductFieldsFromImage(imageUrl);
 
-    const prompt = `Analise a imagem de um produto de lingerie para pré-preencher um cadastro de e-commerce brasileiro. Retorne somente JSON válido. Não invente detalhes que não estejam visíveis; quando não souber, use string vazia. O SKU informado é ${sku}. Categorias disponíveis: ${categories.map((category) => category.name).join(", ")}. Escolha exatamente uma categoria da lista quando houver correspondência, senão deixe vazia. Identifique nome comercial visível ou, se não houver, um nome descritivo curto. Tamanho e cor devem ser preenchidos somente quando houver evidência visual ou textual na imagem.`;
+    const name = cleanOcrText(fields.name);
+    const description = cleanOcrText(fields.quantity);
+    const costPrice = parsePrice(fields.price);
 
-    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_VISION_MODEL || "gpt-4o-mini",
-        temperature: 0.1,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: "Você é um assistente de cadastro de produtos. Sua resposta deve ser JSON com as chaves name, description, size, color e category.",
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: imageData, detail: "high" } },
-            ],
-          },
-        ],
-      }),
-    });
+    console.log("[import-pedido/analisar] OCR concluído:", sku);
 
-    const aiJson = await aiResponse.json();
-    if (!aiResponse.ok) {
-      console.error("[import-pedido/analisar] OpenAI HTTP", aiResponse.status);
-      throw new Error("A análise automática da imagem não pôde ser concluída.");
-    }
-
-    const rawContent = aiJson.choices?.[0]?.message?.content;
-    if (typeof rawContent !== "string") {
-      throw new Error("A análise automática não retornou dados válidos.");
-    }
-
-    const parsed = JSON.parse(rawContent) as Partial<Analysis>;
     const analysis: Analysis = {
-      name: parsed.name?.trim() || `Produto ${sku}`,
-      description: parsed.description?.trim() || "",
-      size: parsed.size?.trim() || "",
-      color: parsed.color?.trim() || "",
-      category: parsed.category?.trim() || "",
+      name: name || `Produto ${sku}`,
+      description,
+      size: "",
+      color: "",
+      category: "",
+      costPrice,
+      salePrice: 0,
     };
 
     return NextResponse.json({
       sku,
-      status: existing ? "EXISTENTE" : "NOVO",
-      existing: existing
-        ? {
-            id: existing.id.toString(),
-            name: existing.name,
-            stockQuantity: existing.stock_quantity,
-            imageUrl: existing.image_url,
-            category: existing.categories?.name ?? null,
-          }
-        : null,
+      status: "NOVO",
+      existing: null,
       analysis,
-      categories,
+      categories: serializedCategories,
+      ocr: {
+        name: fields.name,
+        description: fields.quantity,
+        price: fields.price,
+      },
     });
   } catch (error) {
     console.error("[import-pedido/analisar]", error);
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Não foi possível analisar o produto." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível analisar o produto com OCR.",
+      },
       { status: 502 },
     );
   }
