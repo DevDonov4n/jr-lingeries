@@ -13,6 +13,8 @@ export interface OcrProductFields {
   sku: string;
 }
 
+export type OcrProductRegion = "name" | "price" | "quantity";
+
 let workerPromise: ReturnType<typeof createWorker> | null = null;
 
 async function getWorker() {
@@ -113,6 +115,52 @@ export async function downloadAndPreprocessImage(
   return preprocessImage(imageBuffer, mode);
 }
 
+async function getProductRegionBounds(
+  imageBuffer: Buffer,
+  region: OcrProductRegion,
+) {
+  const metadata = await sharp(imageBuffer).metadata();
+
+  const imageWidth = metadata.width ?? 600;
+  const imageHeight = metadata.height ?? 900;
+
+  const labelLeft = Math.round(imageWidth * 0.45);
+  const labelTop = Math.round(imageHeight * 0.69);
+  const labelWidth = Math.min(
+    imageWidth - labelLeft,
+    Math.round(imageWidth * 0.55),
+  );
+  const labelHeight = Math.min(
+    imageHeight - labelTop,
+    Math.round(imageHeight * 0.31),
+  );
+
+  if (region === "name") {
+    return {
+      left: labelLeft,
+      top: labelTop,
+      width: labelWidth,
+      height: Math.round(labelHeight * 0.42),
+    };
+  }
+
+  if (region === "price") {
+    return {
+      left: labelLeft,
+      top: labelTop + Math.round(labelHeight * 0.30),
+      width: Math.round(labelWidth * 0.70),
+      height: Math.round(labelHeight * 0.34),
+    };
+  }
+
+  return {
+    left: labelLeft + Math.round(labelWidth * 0.25),
+    top: labelTop + Math.round(labelHeight * 0.30),
+    width: Math.round(labelWidth * 0.75),
+    height: Math.round(labelHeight * 0.38),
+  };
+}
+
 async function preprocessLabelRegion(
   imageBuffer: Buffer,
   left: number,
@@ -128,24 +176,8 @@ async function preprocessLabelRegion(
 
   const safeLeft = Math.max(0, Math.min(left, imageWidth - 1));
   const safeTop = Math.max(0, Math.min(top, imageHeight - 1));
-  const safeWidth = Math.max(
-    1,
-    Math.min(width, imageWidth - safeLeft),
-  );
-  const safeHeight = Math.max(
-    1,
-    Math.min(height, imageHeight - safeTop),
-  );
-
-  console.log(
-    "[OCR] Recorte seguro:",
-    JSON.stringify({
-      left: safeLeft,
-      top: safeTop,
-      width: safeWidth,
-      height: safeHeight,
-    }),
-  );
+  const safeWidth = Math.max(1, Math.min(width, imageWidth - safeLeft));
+  const safeHeight = Math.max(1, Math.min(height, imageHeight - safeTop));
 
   return image
     .extract({
@@ -161,6 +193,29 @@ async function preprocessLabelRegion(
     .sharpen()
     .png()
     .toBuffer();
+}
+
+export async function preprocessProductRegion(
+  imageUrl: string,
+  region: OcrProductRegion,
+) {
+  const response = await fetch(imageUrl);
+
+  if (!response.ok) {
+    throw new Error(
+      `Não foi possível baixar a imagem. Status: ${response.status}`,
+    );
+  }
+
+  const imageBuffer = Buffer.from(await response.arrayBuffer());
+  const bounds = await getProductRegionBounds(imageBuffer, region);
+
+  console.log(
+    "[OCR] Visualizando região:",
+    JSON.stringify({ region, ...bounds }),
+  );
+
+  return preprocessLabelRegion(imageBuffer, bounds.left, bounds.top, bounds.width, bounds.height);
 }
 
 async function recognizeRegion(
