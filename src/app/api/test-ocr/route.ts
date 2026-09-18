@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractTextFromImage, type OcrPsm } from "@/lib/ocr";
+import {
+  extractProductFieldsFromImage,
+  extractTextFromImage,
+  type OcrPsm,
+} from "@/lib/ocr";
 
-const VALID_PSM = new Set<OcrPsm>([3, 6, 11, 12]);
+const VALID_PSM = new Set<OcrPsm>([3, 6, 7, 11, 12]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,14 +17,10 @@ export async function POST(request: NextRequest) {
       body.mode === "original" ||
       body.mode === "aggressive" ||
       body.mode === "current" ||
-      body.mode === "label"
+      body.mode === "label" ||
+      body.mode === "fields"
         ? body.mode
         : "current";
-
-    const psmCandidate = Number(body.psm);
-    const psm: OcrPsm = VALID_PSM.has(psmCandidate as OcrPsm)
-      ? (psmCandidate as OcrPsm)
-      : 6;
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -28,6 +28,20 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    if (mode === "fields") {
+      const fields = await extractProductFieldsFromImage(imageUrl);
+
+      return NextResponse.json({
+        mode,
+        fields,
+      });
+    }
+
+    const psmCandidate = Number(body.psm);
+    const psm: OcrPsm = VALID_PSM.has(psmCandidate as OcrPsm)
+      ? (psmCandidate as OcrPsm)
+      : 6;
 
     const ocrMode = mode === "original" ? undefined : mode;
     const text = await extractTextFromImage(imageUrl, ocrMode, psm);
