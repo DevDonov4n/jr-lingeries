@@ -4,6 +4,8 @@ import { createWorker } from "tesseract.js";
 
 type OcrMode = undefined | "current" | "aggressive";
 
+export type OcrPsm = 3 | 6 | 11 | 12;
+
 let workerPromise: ReturnType<typeof createWorker> | null = null;
 
 async function getWorker() {
@@ -30,9 +32,37 @@ async function getWorker() {
   return workerPromise;
 }
 
+async function preprocessImage(imageBuffer: ArrayBuffer, mode: OcrMode) {
+  const image = sharp(Buffer.from(imageBuffer));
+
+  if (mode === undefined) {
+    return image.png().toBuffer();
+  }
+
+  if (mode === "aggressive") {
+    return image
+      .resize({ width: 2400 })
+      .grayscale()
+      .normalize()
+      .linear(1.8, -90)
+      .sharpen()
+      .png()
+      .toBuffer();
+  }
+
+  return image
+    .resize({ width: 1800 })
+    .grayscale()
+    .normalize()
+    .sharpen()
+    .png()
+    .toBuffer();
+}
+
 export async function extractTextFromImage(
   imageUrl: string,
   mode: OcrMode = "current",
+  psm: OcrPsm = 6,
 ) {
   console.log("[OCR] Baixando imagem:", imageUrl);
 
@@ -52,30 +82,7 @@ export async function extractTextFromImage(
     "KB",
   );
 
-  const image = sharp(Buffer.from(imageBuffer));
-
-  let processedImage: Buffer;
-
-  if (mode === undefined) {
-    processedImage = await image.png().toBuffer();
-  } else if (mode === "aggressive") {
-    processedImage = await image
-      .resize({ width: 2400 })
-      .grayscale()
-      .normalize()
-      .linear(1.8, -90)
-      .sharpen()
-      .png()
-      .toBuffer();
-  } else {
-    processedImage = await image
-      .resize({ width: 1800 })
-      .grayscale()
-      .normalize()
-      .sharpen()
-      .png()
-      .toBuffer();
-  }
+  const processedImage = await preprocessImage(imageBuffer, mode);
 
   console.log(
     `[OCR] Imagem processada (${mode ?? "original"}):`,
@@ -85,12 +92,18 @@ export async function extractTextFromImage(
 
   const worker = await getWorker();
 
-  console.log(`[OCR] Iniciando reconhecimento (${mode ?? "original"})...`);
+  await worker.setParameters({
+    tessedit_pageseg_mode: String(psm),
+  });
+
+  console.log(
+    `[OCR] Iniciando reconhecimento (${mode ?? "original"}, PSM ${psm})...`,
+  );
 
   const result = await worker.recognize(processedImage);
 
   console.log(
-    `[OCR] Reconhecimento concluído (${mode ?? "original"}).`,
+    `[OCR] Reconhecimento concluído (${mode ?? "original"}, PSM ${psm}).`,
   );
 
   return result.data.text.trim();
