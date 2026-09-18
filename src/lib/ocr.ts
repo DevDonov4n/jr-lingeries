@@ -1,4 +1,5 @@
 import path from "node:path";
+import sharp from "sharp";
 import { createWorker } from "tesseract.js";
 
 let workerPromise: ReturnType<typeof createWorker> | null = null;
@@ -46,11 +47,27 @@ export async function extractTextFromImage(imageUrl: string) {
     "KB",
   );
 
+  console.log("[OCR] Pré-processando imagem...");
+
+  const processedImage = await sharp(Buffer.from(imageBuffer))
+    .resize({ width: 1800 })
+    .grayscale()
+    .normalize()
+    .sharpen()
+    .png()
+    .toBuffer();
+
+  console.log(
+    "[OCR] Imagem pré-processada:",
+    Math.round(processedImage.byteLength / 1024),
+    "KB",
+  );
+
   const worker = await getWorker();
 
   console.log("[OCR] Iniciando reconhecimento...");
 
-  const result = await worker.recognize(new Uint8Array(imageBuffer));
+  const result = await worker.recognize(processedImage);
 
   console.log("[OCR] Reconhecimento concluído.");
 
