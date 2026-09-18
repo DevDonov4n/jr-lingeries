@@ -2,6 +2,8 @@ import path from "node:path";
 import sharp from "sharp";
 import { createWorker } from "tesseract.js";
 
+type OcrMode = undefined | "current" | "aggressive";
+
 let workerPromise: ReturnType<typeof createWorker> | null = null;
 
 async function getWorker() {
@@ -28,7 +30,10 @@ async function getWorker() {
   return workerPromise;
 }
 
-export async function extractTextFromImage(imageUrl: string) {
+export async function extractTextFromImage(
+  imageUrl: string,
+  mode: OcrMode = "current",
+) {
   console.log("[OCR] Baixando imagem:", imageUrl);
 
   const response = await fetch(imageUrl);
@@ -47,29 +52,46 @@ export async function extractTextFromImage(imageUrl: string) {
     "KB",
   );
 
-  console.log("[OCR] Pré-processando imagem...");
+  const image = sharp(Buffer.from(imageBuffer));
 
-  const processedImage = await sharp(Buffer.from(imageBuffer))
-    .resize({ width: 1800 })
-    .grayscale()
-    .normalize()
-    .sharpen()
-    .png()
-    .toBuffer();
+  let processedImage: Buffer;
+
+  if (mode === undefined) {
+    processedImage = await image.png().toBuffer();
+  } else if (mode === "aggressive") {
+    processedImage = await image
+      .resize({ width: 2400 })
+      .grayscale()
+      .normalize()
+      .linear(1.8, -90)
+      .sharpen()
+      .png()
+      .toBuffer();
+  } else {
+    processedImage = await image
+      .resize({ width: 1800 })
+      .grayscale()
+      .normalize()
+      .sharpen()
+      .png()
+      .toBuffer();
+  }
 
   console.log(
-    "[OCR] Imagem pré-processada:",
+    `[OCR] Imagem processada (${mode ?? "original"}):`,
     Math.round(processedImage.byteLength / 1024),
     "KB",
   );
 
   const worker = await getWorker();
 
-  console.log("[OCR] Iniciando reconhecimento...");
+  console.log(`[OCR] Iniciando reconhecimento (${mode ?? "original"})...`);
 
   const result = await worker.recognize(processedImage);
 
-  console.log("[OCR] Reconhecimento concluído.");
+  console.log(
+    `[OCR] Reconhecimento concluído (${mode ?? "original"}).`,
+  );
 
   return result.data.text.trim();
 }
