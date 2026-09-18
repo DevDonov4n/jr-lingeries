@@ -2,7 +2,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { createWorker } from "tesseract.js";
 
-type OcrMode = undefined | "current" | "aggressive";
+type OcrMode = undefined | "current" | "aggressive" | "label";
 
 export type OcrPsm = 3 | 6 | 11 | 12;
 
@@ -36,10 +36,42 @@ export async function preprocessImage(
   imageBuffer: ArrayBuffer,
   mode: OcrMode,
 ) {
-  const image = sharp(Buffer.from(imageBuffer));
+  const input = Buffer.from(imageBuffer);
+  const image = sharp(input);
 
   if (mode === undefined) {
     return image.png().toBuffer();
+  }
+
+  if (mode === "label") {
+    const metadata = await image.metadata();
+    const width = metadata.width ?? 600;
+    const height = metadata.height ?? 900;
+
+    const left = Math.round(width * 0.47);
+    const top = Math.round(height * 0.70);
+    const cropWidth = Math.min(width - left, Math.round(width * 0.51));
+    const cropHeight = Math.min(height - top, Math.round(height * 0.24));
+
+    console.log(
+      "[OCR] Recortando etiqueta:",
+      JSON.stringify({ left, top, cropWidth, cropHeight }),
+    );
+
+    return image
+      .extract({
+        left,
+        top,
+        width: cropWidth,
+        height: cropHeight,
+      })
+      .resize({ width: 2400 })
+      .grayscale()
+      .normalize()
+      .linear(1.8, -90)
+      .sharpen()
+      .png()
+      .toBuffer();
   }
 
   if (mode === "aggressive") {
