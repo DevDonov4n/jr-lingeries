@@ -31,7 +31,7 @@ function cleanText(value: unknown) {
 }
 
 function extractGeminiJson(text: string) {
-  const cleaned = text.replace(/^\s*```json\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+  const cleaned = text.replace(/^\s*\`\`\`json\s*/i, "").replace(/\s*\`\`\`\s*$/i, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("O Gemini não retornou um JSON válido.");
@@ -79,8 +79,16 @@ export async function POST(request: Request) {
 
     const imageResponse = await fetch(imageUrl, { cache: "no-store" });
     if (!imageResponse.ok) throw new Error("Não foi possível baixar a imagem do SKU " + sku + ".");
-    const contentType = imageResponse.headers.get("content-type") || "image/png";
+
+    const rawContentType = imageResponse.headers.get("content-type") || "";
+    const contentType = rawContentType.split(";")[0].trim().toLowerCase();
+    const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+    if (!allowedTypes.has(contentType)) {
+      throw new Error("A imagem do SKU " + sku + " retornou um formato não suportado: " + (contentType || "desconhecido") + ".");
+    }
+
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    if (!imageBuffer.length) throw new Error("A imagem do SKU " + sku + " está vazia.");
     const imageBase64 = imageBuffer.toString("base64");
     const categoryNames = serializedCategories.map((category) => category.name);
 
@@ -108,10 +116,13 @@ export async function POST(request: Request) {
 
     const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const geminiResponse = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(apiKey),
+      "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: contentType, data: imageBase64 } }] }],
           generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
@@ -119,14 +130,24 @@ export async function POST(request: Request) {
       },
     );
 
-    const geminiJson = await geminiResponse.json();
+    const geminiText = await geminiResponse.text();
+    let geminiJson: any;
+    try {
+      geminiJson = JSON.parse(geminiText);
+    } catch {
+      console.error("[import-pedido/analisar] Gemini resposta não-JSON:", geminiText.slice(0, 1000));
+      throw new Error("O Gemini retornou uma resposta inválida.");
+    }
+
     if (!geminiResponse.ok) {
-      console.error("[import-pedido/analisar] Gemini HTTP", geminiResponse.status);
-      throw new Error("A análise da imagem pelo Gemini não pôde ser concluída.");
+      const apiMessage = geminiJson?.error?.message;
+      console.error("[import-pedido/analisar] Gemini HTTP", geminiResponse.status, apiMessage || geminiText.slice(0, 1000));
+      throw new Error(apiMessage ? "Gemini: " + apiMessage : "A análise da imagem pelo Gemini não pôde ser concluída.");
     }
 
     const rawContent = geminiJson.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
     if (!rawContent) throw new Error("O Gemini não retornou dados para o produto.");
+
     const parsed = extractGeminiJson(rawContent);
     const category = cleanText(parsed.category);
 
