@@ -127,7 +127,7 @@ async function preprocessLabelRegion(
 ) {
   return sharp(imageBuffer)
     .extract({ left, top, width, height })
-    .resize({ width: 1600 })
+    .resize({ width: 1800 })
     .grayscale()
     .normalize()
     .linear(1.6, -70)
@@ -190,38 +190,36 @@ export async function extractProductFieldsFromImage(
 
   const worker = await getWorker();
 
-  // Coordenadas relativas à etiqueta.
+  // Nome: primeira faixa da etiqueta.
   const nameImage = await preprocessLabelRegion(
     imageBuffer,
     labelLeft,
     labelTop,
     labelWidth,
-    Math.round(labelHeight * 0.34),
+    Math.round(labelHeight * 0.40),
   );
 
+  // Preço: faixa inferior esquerda, onde aparece "R$ 69,90".
   const priceImage = await preprocessLabelRegion(
     imageBuffer,
     labelLeft,
-    labelTop + Math.round(labelHeight * 0.34),
-    Math.round(labelWidth * 0.55),
-    Math.round(labelHeight * 0.27),
+    labelTop + Math.round(labelHeight * 0.36),
+    Math.round(labelWidth * 0.60),
+    Math.round(labelHeight * 0.28),
   );
 
+  // Quantidade: faixa inferior direita, incluindo "Contém 1 Peça".
   const quantityImage = await preprocessLabelRegion(
     imageBuffer,
-    labelLeft + Math.round(labelWidth * 0.50),
+    labelLeft + Math.round(labelWidth * 0.35),
     labelTop + Math.round(labelHeight * 0.34),
-    Math.round(labelWidth * 0.50),
-    Math.round(labelHeight * 0.27),
+    Math.round(labelWidth * 0.65),
+    Math.round(labelHeight * 0.34),
   );
 
-  const skuImage = await preprocessLabelRegion(
-    imageBuffer,
-    labelLeft + Math.round(labelWidth * 0.15),
-    labelTop + Math.round(labelHeight * 0.82),
-    Math.round(labelWidth * 0.70),
-    Math.round(labelHeight * 0.18),
-  );
+  // O SKU é extraído diretamente da URL /tags/{sku}.png.
+  const skuMatch = imageUrl.match(//tags/([^/?#]+).png(?:[?#].*)?$/i);
+  const sku = skuMatch?.[1] ?? "";
 
   console.log("[OCR] Reconhecendo campo: nome");
   const name = await recognizeRegion(worker, nameImage, 6);
@@ -241,9 +239,6 @@ export async function extractProductFieldsFromImage(
     6,
     "ContémPecapecA0123456789 ",
   );
-
-  console.log("[OCR] Reconhecendo campo: SKU");
-  const sku = await recognizeRegion(worker, skuImage, 7, "0123456789");
 
   return {
     name,
