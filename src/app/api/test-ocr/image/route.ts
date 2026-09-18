@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  downloadAndPreprocessImage,
-} from "@/lib/ocr";
+import { downloadAndPreprocessImage } from "@/lib/ocr";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +10,8 @@ export async function GET(request: NextRequest) {
     const mode =
       modeParam === "original" ||
       modeParam === "aggressive" ||
-      modeParam === "current"
+      modeParam === "current" ||
+      modeParam === "label"
         ? modeParam
         : "aggressive";
 
@@ -35,11 +34,10 @@ export async function GET(request: NextRequest) {
     }
 
     const originalBuffer = await response.arrayBuffer();
-    const processedBuffer =
-      await downloadAndPreprocessImage(
-        imageUrl,
-        mode === "original" ? undefined : mode,
-      );
+    const processedBuffer = await downloadAndPreprocessImage(
+      imageUrl,
+      mode === "original" ? undefined : mode,
+    );
 
     return new NextResponse(
       mode === "original" ? Buffer.from(originalBuffer) : processedBuffer,
