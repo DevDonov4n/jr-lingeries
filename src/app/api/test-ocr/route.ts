@@ -13,9 +13,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const text = await extractTextFromImage(imageUrl);
+    const results = await Promise.all(
+      [undefined, "current", "aggressive"].map((mode) =>
+        extractTextFromImage(imageUrl, mode),
+      ),
+    );
 
-    return NextResponse.json({ text });
+    return NextResponse.json({
+      original: results[0],
+      current: results[1],
+      aggressive: results[2],
+    });
   } catch (error) {
     console.error("Erro no teste de OCR:", error);
 
