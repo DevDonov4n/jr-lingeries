@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
     const mode =
       body.mode === "original" ||
       body.mode === "aggressive" ||
-      body.mode === "current"
+      body.mode === "current" ||
+      body.mode === "label"
         ? body.mode
         : "current";
 
