@@ -55,10 +55,10 @@ export async function preprocessImage(
     const width = metadata.width ?? 600;
     const height = metadata.height ?? 900;
 
-    const left = Math.round(width * 0.67);
+    const left = Math.round(width * 0.45);
     const top = Math.round(height * 0.69);
-    const cropWidth = Math.min(width - left, Math.round(width * 0.33));
-    const cropHeight = Math.min(height - top, Math.round(height * 0.29));
+    const cropWidth = Math.min(width - left, Math.round(width * 0.55));
+    const cropHeight = Math.min(height - top, Math.round(height * 0.31));
 
     console.log(
       "[OCR] Recortando etiqueta:",
@@ -177,15 +177,15 @@ export async function extractProductFieldsFromImage(
   const imageHeight = metadata.height ?? 900;
 
   // Região da etiqueta branca no canto inferior direito.
-  const labelLeft = Math.round(imageWidth * 0.67);
+  const labelLeft = Math.round(imageWidth * 0.45);
   const labelTop = Math.round(imageHeight * 0.69);
   const labelWidth = Math.min(
     imageWidth - labelLeft,
-    Math.round(imageWidth * 0.33),
+    Math.round(imageWidth * 0.55),
   );
   const labelHeight = Math.min(
     imageHeight - labelTop,
-    Math.round(imageHeight * 0.29),
+    Math.round(imageHeight * 0.31),
   );
 
   const worker = await getWorker();
@@ -243,12 +243,7 @@ export async function extractProductFieldsFromImage(
   );
 
   console.log("[OCR] Reconhecendo campo: SKU");
-  const sku = await recognizeRegion(
-    worker,
-    skuImage,
-    7,
-    "0123456789",
-  );
+  const sku = await recognizeRegion(worker, skuImage, 7, "0123456789");
 
   return {
     name,
