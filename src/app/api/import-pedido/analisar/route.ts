@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -30,11 +31,11 @@ function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
 }
 
-function extractGeminiJson(text: string) {
-  const cleaned = text.replace(/^\s*\`\`\`json\s*/i, "").replace(/\s*\`\`\`\s*$/i, "").trim();
+function extractOpenAIJson(text: string) {
+  const cleaned = text.replace(/^\s*```json\s*/i, "").replace(/\s*```\s*$/i, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start < 0 || end <= start) throw new Error("O Gemini não retornou um JSON válido.");
+  if (start < 0 || end <= start) throw new Error("A OpenAI não retornou um JSON válido.");
   return JSON.parse(cleaned.slice(start, end + 1)) as Partial<Analysis>;
 }
 
@@ -74,8 +75,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY não configurada no ambiente.");
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error("OPENAI_API_KEY não configurada no ambiente.");
 
     const imageResponse = await fetch(imageUrl, { cache: "no-store" });
     if (!imageResponse.ok) throw new Error("Não foi possível baixar a imagem do SKU " + sku + ".");
@@ -89,9 +90,8 @@ export async function POST(request: Request) {
 
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     if (!imageBuffer.length) throw new Error("A imagem do SKU " + sku + " está vazia.");
-    const imageBase64 = imageBuffer.toString("base64");
-    const categoryNames = serializedCategories.map((category) => category.name);
 
+    const categoryNames = serializedCategories.map((category) => category.name);
     const prompt = [
       "Analise cuidadosamente a imagem de um produto de lingerie da Morena Lingerie para pré-preencher um cadastro de e-commerce brasileiro.",
       "",
@@ -114,41 +114,28 @@ export async function POST(request: Request) {
       "Categorias disponíveis: " + (categoryNames.join(", ") || "nenhuma") + ".",
     ].join("\n");
 
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const geminiResponse = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: contentType, data: imageBase64 } }] }],
-          generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
-        }),
-      },
-    );
+    const openai = new OpenAI({ apiKey });
+    const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+    const response = await openai.responses.create({
+      model,
+      temperature: 0.1,
+      input: [{
+        role: "user",
+        content: [
+          { type: "input_text", text: prompt },
+          {
+            type: "input_image",
+            image_url: "data:" + contentType + ";base64," + imageBuffer.toString("base64"),
+            detail: "high",
+          },
+        ],
+      }],
+    });
 
-    const geminiText = await geminiResponse.text();
-    let geminiJson: any;
-    try {
-      geminiJson = JSON.parse(geminiText);
-    } catch {
-      console.error("[import-pedido/analisar] Gemini resposta não-JSON:", geminiText.slice(0, 1000));
-      throw new Error("O Gemini retornou uma resposta inválida.");
-    }
+    const rawContent = response.output_text?.trim() || "";
+    if (!rawContent) throw new Error("A OpenAI não retornou dados para o produto.");
 
-    if (!geminiResponse.ok) {
-      const apiMessage = geminiJson?.error?.message;
-      console.error("[import-pedido/analisar] Gemini HTTP", geminiResponse.status, apiMessage || geminiText.slice(0, 1000));
-      throw new Error(apiMessage ? "Gemini: " + apiMessage : "A análise da imagem pelo Gemini não pôde ser concluída.");
-    }
-
-    const rawContent = geminiJson.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
-    if (!rawContent) throw new Error("O Gemini não retornou dados para o produto.");
-
-    const parsed = extractGeminiJson(rawContent);
+    const parsed = extractOpenAIJson(rawContent);
     const category = cleanText(parsed.category);
 
     const analysis: Analysis = {
@@ -165,7 +152,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[import-pedido/analisar]", error);
     return NextResponse.json({
-      error: error instanceof Error ? error.message : "Não foi possível analisar o produto com Gemini.",
+      error: error instanceof Error ? error.message : "Não foi possível analisar o produto com OpenAI.",
     }, { status: 502 });
   }
 }
