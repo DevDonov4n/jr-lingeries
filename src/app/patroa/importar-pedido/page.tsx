@@ -113,7 +113,7 @@ export default function ImportarPedidoPage() {
                 actionMessage:
                   error instanceof Error
                     ? error.message
-                    : "Falha na análise com Gemini.",
+                    : "Falha na análise com OpenAI.",
               }
             : product,
         ),
@@ -218,7 +218,7 @@ export default function ImportarPedidoPage() {
         <span className={styles.eyebrow}>JR Lingeries · Patroa</span>
         <h1>Importar pedido da Morena</h1>
         <p className={styles.description}>
-          Consulte o pedido, confira o preenchimento por Gemini e confirme cada
+          Consulte o pedido, confira o preenchimento por OpenAI e confirme cada
           alteração antes de mexer no estoque.
         </p>
         <form onSubmit={submit} className={styles.form}>
@@ -253,7 +253,7 @@ export default function ImportarPedidoPage() {
           <section className={styles.results}>
             <div className={styles.resultsHeader}>
               <div>
-                <span className={styles.eyebrow}>Prévia por Gemini</span>
+                <span className={styles.eyebrow}>Prévia por OpenAI</span>
                 <h2>Produtos encontrados</h2>
               </div>
               <strong>{products.length}</strong>
@@ -296,7 +296,7 @@ export default function ImportarPedidoPage() {
                       </div>
                       {analyzing === product.sku && (
                         <p className={styles.analyzing}>
-                          Analisando imagem com Gemini...
+                          Analisando imagem com OpenAI...
                         </p>
                       )}
                       {existing ? (
@@ -475,7 +475,7 @@ export default function ImportarPedidoPage() {
               })}
             </div>
             <p className={styles.note}>
-              O Gemini apenas pré-preenche os dados. Revise tudo antes de
+              A OpenAI apenas pré-preenche os dados. Revise tudo antes de
               cadastrar. A quantidade do estoque vem do pedido da Morena, não do
               texto "Contém 1 Peça" da etiqueta. Produtos existentes só têm o
               estoque alterado quando você confirmar.
