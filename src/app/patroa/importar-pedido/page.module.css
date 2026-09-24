@@ -27,7 +27,7 @@
   color: #4a3e3d;
 }
 .description {
-  max-width: 760px;
+  max-width: 820px;
   margin: 10px 0 28px;
   color: #756867;
   line-height: 1.6;
@@ -39,7 +39,8 @@
   align-items: end;
 }
 .form label,
-.fields label {
+.fields label,
+.variantRow label {
   display: grid;
   gap: 7px;
   color: #4a3e3d;
@@ -49,7 +50,8 @@
 .form input,
 .fields input,
 .fields textarea,
-.fields select {
+.fields select,
+.variantRow input {
   width: 100%;
   min-height: 44px;
   padding: 9px 12px;
@@ -67,7 +69,8 @@
 .form input:focus,
 .fields input:focus,
 .fields textarea:focus,
-.fields select:focus {
+.fields select:focus,
+.variantRow input:focus {
   border-color: #ffb6c1;
   box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.2);
 }
@@ -166,12 +169,6 @@
   font-size: 0.78rem;
   font-weight: 700;
 }
-.existing {
-  border-color: #e9ccd5;
-}
-.newProduct {
-  border-color: #efc1cf;
-}
 .productInfo h3 {
   margin: 6px 0;
   color: #4a3e3d;
@@ -179,30 +176,6 @@
 .meta {
   margin: 0 0 16px;
   color: #756867;
-}
-.analyzing {
-  margin: 8px 0;
-  color: #b56b7d;
-  font-weight: 700;
-}
-.stockBox {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 12px;
-  margin: 14px 0;
-  padding: 14px;
-  border-radius: 12px;
-  background: #fff0f5;
-}
-.stockBox span {
-  color: #756867;
-}
-.stockBox strong {
-  color: #4a3e3d;
-}
-.stockBox small {
-  grid-column: 1/-1;
-  color: #887978;
 }
 .fields {
   display: grid;
@@ -212,6 +185,74 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+.variantHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+.variantHeader > div {
+  display: grid;
+  gap: 4px;
+}
+.variantHeader strong {
+  color: #4a3e3d;
+}
+.variantHeader span {
+  color: #887978;
+  font-size: 0.8rem;
+}
+.complete,
+.pending {
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.complete {
+  color: #4a3e3d;
+  background: #e4f4e7;
+}
+.pending {
+  color: #8a5b62;
+  background: #fff0f5;
+}
+.variantList {
+  display: grid;
+  gap: 10px;
+}
+.variantRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #f1d7df;
+  border-radius: 12px;
+  background: #fff;
+}
+.removeVariant {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #e6cbd3;
+  border-radius: 10px;
+  color: #756867;
+  background: #fff;
+  cursor: pointer;
+}
+.addVariant {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 10px;
+  border: 1px dashed #e0aebc;
+  border-radius: 10px;
+  color: #b56b7d;
+  background: #fffafd;
+  font-weight: 700;
+  cursor: pointer;
 }
 .quantity {
   color: #756867;
@@ -256,6 +297,16 @@
   }
   .twoFields {
     grid-template-columns: 1fr;
+  }
+  .variantRow {
+    grid-template-columns: 1fr 1fr;
+  }
+  .removeVariant {
+    grid-column: 1 / -1;
+  }
+  .variantHeader {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .statusRow {
     align-items: flex-start;
