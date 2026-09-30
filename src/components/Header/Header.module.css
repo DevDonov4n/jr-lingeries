@@ -21,13 +21,26 @@
 .logo {
   display: flex;
   align-items: center;
+  gap: 10px;
   flex-shrink: 0;
+  text-decoration: none;
 }
-.logo img {
-  width: auto;
-  height: 54px;
-  object-fit: contain;
-  display: block;
+.logoIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 12px;
+  font-size: 30px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(74, 62, 61, 0.08);
+}
+.logoText {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--texto);
 }
 .nav {
   display: flex;
@@ -168,8 +181,10 @@
   .login {
     padding: 9px 14px;
   }
-  .logo img {
-    height: 48px;
+  .logoIcon {
+    width: 44px;
+    height: 44px;
+    font-size: 28px;
   }
 }
 @media (max-width: 760px) {
@@ -240,9 +255,13 @@
   .container {
     padding: 0 14px;
   }
-  .logo img {
-    height: 44px;
-    max-width: 180px;
+  .logoIcon {
+    width: 42px;
+    height: 42px;
+    font-size: 26px;
+  }
+  .logoText {
+    font-size: 0.95rem;
   }
   .menuButton {
     width: 42px;
