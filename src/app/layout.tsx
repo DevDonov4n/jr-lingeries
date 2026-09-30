@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "JR Lingeries",
   description:
     "Beleza, conforto e delicadeza em cada detalhe.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
