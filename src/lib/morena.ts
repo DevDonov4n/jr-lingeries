@@ -11,6 +11,7 @@ type MorenaSession = {
 export type MorenaProductReference = {
   sku: string;
   imageUrl: string;
+  quantity: number;
 };
 
 function extractCookies(headers: Headers) {
@@ -159,7 +160,7 @@ export async function fetchMorenaPedido(cpf: string, pedido: string) {
 
   console.log(
     "[Morena] Referências encontradas:",
-    products.map((product) => product.sku),
+    products.map((product) => `${product.sku} (${product.quantity} un.)`),
   );
 
   if (response.url.toLowerCase().includes("/pdf/indisponivel.asp")) {
@@ -181,19 +182,42 @@ export async function fetchMorenaPedido(cpf: string, pedido: string) {
 }
 
 function extractProductReferences(html: string): MorenaProductReference[] {
-  const matches = html.matchAll(/<img[^>]+src=["']([^"']*\/tags\/([0-9]+)\.png)["'][^>]*>/gi);
+  const sections = html.split(/<div[^>]+style=["'][^"']*page-break-after:\s*always[^"']*["'][^>]*>/i);
   const seen = new Set<string>();
   const products: MorenaProductReference[] = [];
 
-  for (const match of matches) {
+  for (const section of sections) {
+    const match = section.match(/<img[^>]+src=["']([^"']*\/tags\/([0-9]+)\.png)["'][^>]*>/i);
+    if (!match) continue;
+
     const relativeUrl = match[1];
     const sku = match[2];
     if (seen.has(sku)) continue;
     seen.add(sku);
+
+    const quantityMatch = section.match(/(?:qtd(?:e)?|quantidade|qtde|qte|peças?|unidades?)\s*[:\-]?\s*(\d+)/i);
+    const quantity = quantityMatch ? Math.max(1, Number(quantityMatch[1])) : 1;
+
     products.push({
       sku,
       imageUrl: new URL(relativeUrl, `${MORENA_BASE_URL}/pdf/`).toString(),
+      quantity,
     });
+  }
+
+  if (products.length === 0) {
+    const matches = html.matchAll(/<img[^>]+src=["']([^"']*\/tags\/([0-9]+)\.png)["'][^>]*>/gi);
+    for (const match of matches) {
+      const relativeUrl = match[1];
+      const sku = match[2];
+      if (seen.has(sku)) continue;
+      seen.add(sku);
+      products.push({
+        sku,
+        imageUrl: new URL(relativeUrl, `${MORENA_BASE_URL}/pdf/`).toString(),
+        quantity: 1,
+      });
+    }
   }
 
   return products;
