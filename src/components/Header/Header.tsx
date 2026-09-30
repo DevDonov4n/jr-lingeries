@@ -1,11 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaCartShopping } from "react-icons/fa6";
 import styles from "./Header.module.css";
-import logo from "@/assets/logo.png";
 import { useCart } from "@/context/CartContext";
 
 export default function Header() {
@@ -48,7 +46,7 @@ export default function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        <Link href="/" className={styles.logo} aria-label="JR Lingeries - Início"><Image src={logo} alt="JR Lingeries" priority /></Link>
+        <Link href="/" className={styles.logo} aria-label="JR Lingeries - Início"><span className={styles.logoIcon} aria-hidden="true">👙</span><span className={styles.logoText}>JR Lingeries</span></Link>
         <nav className={styles.nav} aria-label="Navegação principal">
           <Link href="/">Início</Link><Link href="/produtos">Produtos</Link><Link href="/sobre">Sobre Nós</Link><Link href="/contato">Contato</Link>
         </nav>
